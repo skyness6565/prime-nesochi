@@ -7,7 +7,8 @@ import {
   ChevronDown, 
   ChevronUp,
   User,
-  MapPin
+  MapPin,
+  Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAdmin, UserWithProfile } from "@/hooks/useAdmin";
+import WalletAddressModal from "./WalletAddressModal";
 
 interface AdminUserCardProps {
   user: UserWithProfile;
@@ -31,6 +33,7 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [freezeDialogOpen, setFreezeDialogOpen] = useState(false);
   const [freezeReason, setFreezeReason] = useState("");
+  const [walletAddressModalOpen, setWalletAddressModalOpen] = useState(false);
 
   const isFrozen = user.profile?.is_frozen || false;
   const displayName = user.profile?.display_name || user.profile?.username || "Unknown User";
@@ -101,8 +104,18 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
             <Button
               size="sm"
               variant="outline"
+              onClick={() => setWalletAddressModalOpen(true)}
+              className="h-8"
+              title="Manage Wallet Addresses"
+            >
+              <Wallet className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
               onClick={onFund}
               className="h-8"
+              title="Fund Account"
             >
               <DollarSign className="w-4 h-4" />
             </Button>
@@ -112,6 +125,7 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
               onClick={handleToggleFreeze}
               disabled={isToggling}
               className="h-8"
+              title={isFrozen ? "Unfreeze Account" : "Freeze Account"}
             >
               {isFrozen ? (
                 <Sun className="w-4 h-4" />
@@ -197,6 +211,35 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
                   </div>
                 )}
               </div>
+
+              {/* Wallet Addresses */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Wallet Addresses</p>
+                {user.walletAddresses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No addresses configured</p>
+                ) : (
+                  <div className="space-y-2">
+                    {user.walletAddresses.map((address) => (
+                      <div 
+                        key={address.id}
+                        className="p-2 bg-secondary rounded-lg"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-foreground">
+                            {address.symbol}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {address.network}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-mono break-all">
+                          {address.wallet_address}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -232,6 +275,13 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Wallet Address Modal */}
+      <WalletAddressModal 
+        user={user} 
+        open={walletAddressModalOpen} 
+        onClose={() => setWalletAddressModalOpen(false)} 
+      />
     </>
   );
 };
