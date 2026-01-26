@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, ArrowDownUp, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,36 @@ import { useWallet } from "@/hooks/useWallet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import BottomNavigation from "@/components/wallet/BottomNavigation";
+import SlippageSettings from "@/components/wallet/SlippageSettings";
+import SwapHistory from "@/components/wallet/SwapHistory";
+import PriceImpactWarning from "@/components/wallet/PriceImpactWarning";
+import NetworkFeeWarning from "@/components/wallet/NetworkFeeWarning";
+
+// Network to native coin mapping
+const NETWORK_NATIVE_COINS: Record<string, { coinId: string; symbol: string }> = {
+  "Bitcoin": { coinId: "bitcoin", symbol: "BTC" },
+  "Bitcoin (SegWit)": { coinId: "bitcoin", symbol: "BTC" },
+  "Ethereum": { coinId: "ethereum", symbol: "ETH" },
+  "Arbitrum": { coinId: "ethereum", symbol: "ETH" },
+  "Optimism": { coinId: "ethereum", symbol: "ETH" },
+  "Polygon": { coinId: "matic-network", symbol: "MATIC" },
+  "Solana": { coinId: "solana", symbol: "SOL" },
+  "BNB Smart Chain": { coinId: "binancecoin", symbol: "BNB" },
+  "BNB Beacon Chain": { coinId: "binancecoin", symbol: "BNB" },
+  "Ethereum (ERC-20)": { coinId: "ethereum", symbol: "ETH" },
+  "Tron (TRC-20)": { coinId: "tron", symbol: "TRX" },
+  "XRP Ledger": { coinId: "ripple", symbol: "XRP" },
+  "Cardano": { coinId: "cardano", symbol: "ADA" },
+  "Dogecoin": { coinId: "dogecoin", symbol: "DOGE" },
+};
+
+const REQUIRED_FEE_USD = 2; // Minimum $2 for network fee
 
 const SwapPage = () => {
   const { data: prices, isLoading: pricesLoading } = useCryptoPrices();
   const { wallets, sendCrypto, receiveCrypto, isSending } = useWallet();
   
+  const [slippage, setSlippage] = useState(0.5);
   const [fromCrypto, setFromCrypto] = useState<{
     id: string;
     symbol: string;
@@ -64,6 +89,55 @@ const SwapPage = () => {
   const toAmount = fromAmount ? (parseFloat(fromAmount) * swapRate).toFixed(8) : "0";
   const fromUsdValue = fromCrypto ? parseFloat(fromAmount || "0") * fromCrypto.currentPrice : 0;
 
+  // Calculate price impact (simulated - based on trade size)
+  const priceImpact = useMemo(() => {
+    if (!fromUsdValue || fromUsdValue < 100) return 0;
+    // Simulate price impact: larger trades have higher impact
+    if (fromUsdValue < 1000) return 0.1;
+    if (fromUsdValue < 5000) return 0.5;
+    if (fromUsdValue < 10000) return 1.5;
+    if (fromUsdValue < 50000) return 3;
+    if (fromUsdValue < 100000) return 5;
+    return Math.min(15, fromUsdValue / 10000);
+  }, [fromUsdValue]);
+
+  // Get network fee coin info
+  const networkFeeCoin = useMemo(() => {
+    if (!fromCrypto) return null;
+    
+    // Default networks for each crypto
+    const defaultNetworks: Record<string, string> = {
+      bitcoin: "Bitcoin",
+      ethereum: "Ethereum",
+      solana: "Solana",
+      binancecoin: "BNB Smart Chain",
+      tether: "Ethereum (ERC-20)",
+      ripple: "XRP Ledger",
+      cardano: "Cardano",
+      dogecoin: "Dogecoin",
+    };
+    
+    const network = defaultNetworks[fromCrypto.id] || "Ethereum";
+    const nativeCoin = NETWORK_NATIVE_COINS[network];
+    
+    if (!nativeCoin) return null;
+    
+    const wallet = wallets.find((w) => w.coin_id === nativeCoin.coinId);
+    const priceData = prices?.find((p) => p.id === nativeCoin.coinId);
+    
+    return {
+      network,
+      coinId: nativeCoin.coinId,
+      symbol: nativeCoin.symbol,
+      balance: wallet?.balance || 0,
+      price: priceData?.current_price || 0,
+    };
+  }, [fromCrypto, wallets, prices]);
+
+  const hasEnoughForFee = networkFeeCoin 
+    ? networkFeeCoin.balance * networkFeeCoin.price >= REQUIRED_FEE_USD 
+    : false;
+
   const handleSwapDirection = () => {
     if (!fromCrypto || !toCrypto) return;
     
@@ -94,6 +168,15 @@ const SwapPage = () => {
 
   const handleConfirmSwap = async () => {
     if (!fromCrypto || !toCrypto || !fromAmount) return;
+
+    if (!hasEnoughForFee) {
+      toast({
+        title: "Insufficient Network Fee",
+        description: `You need at least $${REQUIRED_FEE_USD} of ${networkFeeCoin?.symbol} to cover the network fee.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Deduct from source
     sendCrypto({
@@ -134,6 +217,11 @@ const SwapPage = () => {
     setSelectingFor(null);
   };
 
+  const canProceed = fromCrypto && toCrypto && fromAmount && 
+    parseFloat(fromAmount) > 0 && 
+    parseFloat(fromAmount) <= (fromCrypto?.balance || 0) &&
+    hasEnoughForFee;
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -148,6 +236,7 @@ const SwapPage = () => {
               <p className="text-sm text-muted-foreground">Exchange your crypto</p>
             </div>
           </div>
+          <SlippageSettings slippage={slippage} onSlippageChange={setSlippage} />
         </div>
       </div>
 
@@ -343,14 +432,37 @@ const SwapPage = () => {
                 </motion.div>
               )}
 
+              {/* Price Impact Warning */}
+              {fromCrypto && toCrypto && fromAmount && parseFloat(fromAmount) > 0 && (
+                <PriceImpactWarning
+                  priceImpact={priceImpact}
+                  fromSymbol={fromCrypto.symbol}
+                  toSymbol={toCrypto.symbol}
+                />
+              )}
+
+              {/* Network Fee Warning */}
+              {fromCrypto && networkFeeCoin && (
+                <NetworkFeeWarning
+                  networkName={networkFeeCoin.network}
+                  networkCoinSymbol={networkFeeCoin.symbol}
+                  networkCoinBalance={networkFeeCoin.balance}
+                  requiredFee={REQUIRED_FEE_USD}
+                  networkCoinPrice={networkFeeCoin.price}
+                />
+              )}
+
               <Button
                 onClick={() => setStep("confirm")}
-                disabled={!fromCrypto || !toCrypto || !fromAmount || parseFloat(fromAmount) > (fromCrypto?.balance || 0)}
+                disabled={!canProceed}
                 className="w-full h-14 text-lg font-semibold"
                 size="lg"
               >
-                Review Swap
+                {!hasEnoughForFee && fromCrypto ? `Need $${REQUIRED_FEE_USD} ${networkFeeCoin?.symbol} for fee` : "Review Swap"}
               </Button>
+
+              {/* Swap History */}
+              <SwapHistory />
             </motion.div>
           ) : (
             <motion.div
@@ -398,18 +510,39 @@ const SwapPage = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Network Fee</span>
-                  <span className="text-foreground font-medium">~$1.50</span>
+                  <span className="text-foreground font-medium">~${REQUIRED_FEE_USD.toFixed(2)} ({networkFeeCoin?.symbol})</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Slippage Tolerance</span>
-                  <span className="text-foreground font-medium">0.5%</span>
+                  <span className="text-foreground font-medium">{slippage}%</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Price Impact</span>
+                  <span className={`font-medium ${priceImpact >= 3 ? "text-destructive" : priceImpact >= 1 ? "text-warning" : "text-foreground"}`}>
+                    ~{priceImpact.toFixed(2)}%
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Minimum Received</span>
+                  <span className="text-foreground font-medium">
+                    {(parseFloat(toAmount) * (1 - slippage / 100)).toFixed(6)} {toCrypto?.symbol}
+                  </span>
                 </div>
               </div>
+
+              {priceImpact >= 3 && (
+                <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-xl border border-destructive/20">
+                  <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <p className="text-sm text-destructive">
+                    High price impact! You may receive significantly less than expected.
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-start gap-3 p-4 bg-primary/10 rounded-xl border border-primary/20">
                 <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <p className="text-sm text-primary">
-                  Rates may change. Your swap will execute at the best available rate.
+                  Rates may change. Your swap will execute at the best available rate within your slippage tolerance of {slippage}%.
                 </p>
               </div>
 
@@ -418,29 +551,16 @@ const SwapPage = () => {
                   Back
                 </Button>
                 <Button 
-                  onClick={handleConfirmSwap} 
+                  onClick={handleConfirmSwap}
                   disabled={isSending}
-                  className="flex-1 h-12"
+                  className="flex-1 h-12 bg-primary"
                 >
-                  {isSending ? "Swapping..." : "Confirm Swap"}
+                  {isSending ? "Processing..." : "Confirm Swap"}
                 </Button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Quick Info */}
-        {step === "select" && !selectingFor && cryptosWithBalance.length === 0 && (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-secondary mx-auto mb-4 flex items-center justify-center">
-              <RefreshCw className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-semibold text-foreground mb-2">No tokens to swap</h3>
-            <p className="text-sm text-muted-foreground">
-              You need to have some crypto in your wallet to swap
-            </p>
-          </div>
-        )}
       </div>
 
       <BottomNavigation />
