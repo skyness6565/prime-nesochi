@@ -311,6 +311,70 @@ export const useAdmin = () => {
     },
   });
 
+  // Update or create wallet address
+  const updateWalletAddressMutation = useMutation({
+    mutationFn: async ({
+      userId,
+      coinId,
+      symbol,
+      network,
+      walletAddress,
+      existingId,
+    }: {
+      userId: string;
+      coinId: string;
+      symbol: string;
+      network: string;
+      walletAddress: string;
+      existingId?: string;
+    }) => {
+      if (existingId) {
+        // Update existing wallet address
+        const { error } = await supabase
+          .from("user_wallets")
+          .update({ wallet_address: walletAddress })
+          .eq("id", existingId);
+        if (error) throw error;
+      } else {
+        // Create new wallet address
+        const { error } = await supabase
+          .from("user_wallets")
+          .insert({
+            user_id: userId,
+            coin_id: coinId,
+            symbol,
+            network,
+            wallet_address: walletAddress,
+          });
+        if (error) throw error;
+      }
+
+      // Log admin action
+      await supabase.from("admin_actions").insert({
+        admin_id: user?.id,
+        action_type: "update_wallet_address",
+        target_user_id: userId,
+        details: { coin_id: coinId, symbol, network, wallet_address: walletAddress },
+      });
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      toast({
+        title: "Wallet Address Updated",
+        description: "User wallet address has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Update Address",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     isAdmin: isAdminQuery.data || false,
     isCheckingAdmin: isAdminQuery.isLoading,
@@ -320,9 +384,11 @@ export const useAdmin = () => {
     fundAccount: fundAccountMutation.mutate,
     toggleFreeze: toggleFreezeMutation.mutate,
     updateFee: updateFeeMutation.mutate,
+    updateWalletAddress: updateWalletAddressMutation.mutate,
     isFunding: fundAccountMutation.isPending,
     isToggling: toggleFreezeMutation.isPending,
     isUpdatingFee: updateFeeMutation.isPending,
+    isUpdatingAddress: updateWalletAddressMutation.isPending,
   };
 };
 
