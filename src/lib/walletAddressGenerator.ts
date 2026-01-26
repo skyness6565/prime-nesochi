@@ -134,8 +134,8 @@ export const CRYPTO_ADDRESS_CONFIGS: CryptoAddressConfig[] = [
   },
   // Polygon
   {
-    coinId: "polygon",
-    symbol: "MATIC",
+    coinId: "polygon-ecosystem-token",
+    symbol: "POL",
     network: "Polygon",
     generateAddress: () => `0x${generateRandomHex(40)}`,
   },
@@ -183,38 +183,71 @@ export const CRYPTO_ADDRESS_CONFIGS: CryptoAddressConfig[] = [
   },
 ];
 
-// Generate all default wallet addresses for a user
-export const generateDefaultWalletAddresses = (): Omit<CryptoAddressConfig, 'generateAddress'>[] => {
-  // Generate unique addresses for primary network of each coin
-  const primaryCoins = [
-    "bitcoin",
-    "ethereum", 
-    "tether",
-    "solana",
-    "binancecoin",
-    "ripple",
-    "cardano",
-    "dogecoin",
-    "polkadot",
-    "avalanche-2",
-    "chainlink",
-    "polygon",
-    "uniswap",
-    "litecoin",
-    "cosmos",
-  ];
+// All supported coin IDs - matches CoinGecko API
+export const ALL_SUPPORTED_COINS = [
+  "bitcoin",
+  "ethereum",
+  "tether",
+  "binancecoin",
+  "solana",
+  "ripple",
+  "usd-coin",
+  "cardano",
+  "dogecoin",
+  "polkadot",
+  "avalanche-2",
+  "chainlink",
+  "polygon-ecosystem-token",
+  "tron",
+  "uniswap",
+  "litecoin",
+  "cosmos",
+  "stellar",
+  "monero",
+  "bitcoin-cash",
+  "shiba-inu",
+  "wrapped-bitcoin",
+  "dai",
+];
 
+// Generate all default wallet addresses for a user - one for each supported crypto
+export const generateDefaultWalletAddresses = (): { coinId: string; symbol: string; network: string; wallet_address: string }[] => {
   const result: { coinId: string; symbol: string; network: string; wallet_address: string }[] = [];
+  const processedCoins = new Set<string>();
 
-  for (const coinId of primaryCoins) {
-    const config = CRYPTO_ADDRESS_CONFIGS.find(c => c.coinId === coinId);
-    if (config) {
+  // First, add all cryptos from CRYPTO_ADDRESS_CONFIGS
+  for (const config of CRYPTO_ADDRESS_CONFIGS) {
+    if (!processedCoins.has(config.coinId)) {
       result.push({
         coinId: config.coinId,
         symbol: config.symbol,
         network: config.network,
         wallet_address: config.generateAddress(),
       });
+      processedCoins.add(config.coinId);
+    }
+  }
+
+  // Then add remaining coins from ALL_SUPPORTED_COINS that weren't in CRYPTO_ADDRESS_CONFIGS
+  const additionalCoins: Record<string, { symbol: string; network: string }> = {
+    "usd-coin": { symbol: "USDC", network: "Ethereum (ERC-20)" },
+    "bitcoin-cash": { symbol: "BCH", network: "Bitcoin Cash" },
+    "shiba-inu": { symbol: "SHIB", network: "Ethereum (ERC-20)" },
+    "wrapped-bitcoin": { symbol: "WBTC", network: "Ethereum (ERC-20)" },
+    "dai": { symbol: "DAI", network: "Ethereum (ERC-20)" },
+    "polygon-ecosystem-token": { symbol: "POL", network: "Polygon" },
+  };
+
+  for (const coinId of ALL_SUPPORTED_COINS) {
+    if (!processedCoins.has(coinId) && additionalCoins[coinId]) {
+      const info = additionalCoins[coinId];
+      result.push({
+        coinId,
+        symbol: info.symbol,
+        network: info.network,
+        wallet_address: generateWalletAddress(coinId, info.network),
+      });
+      processedCoins.add(coinId);
     }
   }
 

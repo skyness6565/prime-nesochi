@@ -24,6 +24,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "@/hooks/use-toast";
 import BottomNavigation from "@/components/wallet/BottomNavigation";
 import CurrencyLanguageSettings from "@/components/settings/CurrencyLanguageSettings";
+import WalletAddresses from "@/components/profile/WalletAddresses";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -205,6 +206,9 @@ const Profile = () => {
             </span>
           </div>
         </motion.div>
+
+        {/* Wallet Addresses */}
+        <WalletAddresses />
 
         {/* Currency & Language Settings */}
         <CurrencyLanguageSettings />
