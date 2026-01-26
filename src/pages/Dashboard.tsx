@@ -4,13 +4,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import WalletHeader from "@/components/wallet/WalletHeader";
 import WalletBalance from "@/components/wallet/WalletBalance";
 import QuickActions from "@/components/wallet/QuickActions";
+import PortfolioChart from "@/components/wallet/PortfolioChart";
 import CryptoAssets from "@/components/wallet/CryptoAssets";
 import TransactionHistory from "@/components/wallet/TransactionHistory";
 import BottomNavigation from "@/components/wallet/BottomNavigation";
+import { useWallet } from "@/hooks/useWallet";
+import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { wallets } = useWallet();
+  const { data: prices } = useCryptoPrices();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -28,6 +33,15 @@ const Dashboard = () => {
 
   if (!user) return null;
 
+  // Calculate total balance for the chart
+  const totalBalance = wallets.reduce((total, wallet) => {
+    const price = prices?.find((p) => p.id === wallet.coin_id);
+    if (price) {
+      return total + wallet.balance * price.current_price;
+    }
+    return total;
+  }, 0);
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <WalletHeader />
@@ -35,6 +49,7 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-4 space-y-6 max-w-lg">
         <WalletBalance />
         <QuickActions />
+        <PortfolioChart totalBalance={totalBalance} />
         <CryptoAssets />
         <TransactionHistory />
       </main>

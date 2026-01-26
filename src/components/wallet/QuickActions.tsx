@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownLeft, QrCode, RefreshCw, CreditCard, MoreHorizontal } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, QrCode, RefreshCw, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import SendModal from "./SendModal";
 import ReceiveModal from "./ReceiveModal";
@@ -18,7 +18,7 @@ const QuickActions = () => {
     { 
       icon: ArrowDownLeft, 
       label: "Receive", 
-      color: "bg-highlight",
+      color: "bg-success",
       onClick: () => setReceiveOpen(true)
     },
     { 
@@ -34,12 +34,6 @@ const QuickActions = () => {
       onClick: () => {}
     },
     { 
-      icon: CreditCard, 
-      label: "Buy", 
-      color: "bg-secondary",
-      onClick: () => {}
-    },
-    { 
       icon: MoreHorizontal, 
       label: "More", 
       color: "bg-secondary",
@@ -49,7 +43,7 @@ const QuickActions = () => {
 
   return (
     <>
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-5 gap-2">
         {actions.map((action, index) => (
           <motion.button
             key={action.label}
@@ -57,12 +51,12 @@ const QuickActions = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             onClick={action.onClick}
-            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-200 active:scale-95"
+            className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-200 active:scale-95"
           >
-            <div className={`w-12 h-12 rounded-full ${action.color} flex items-center justify-center`}>
+            <div className={`w-11 h-11 rounded-full ${action.color} flex items-center justify-center`}>
               <action.icon className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-sm font-medium text-foreground">{action.label}</span>
+            <span className="text-xs font-medium text-foreground">{action.label}</span>
           </motion.button>
         ))}
       </div>

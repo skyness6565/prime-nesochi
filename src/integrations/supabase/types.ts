@@ -41,6 +41,81 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          amount: number
+          coin_id: string
+          created_at: string
+          from_address: string | null
+          id: string
+          status: string
+          symbol: string
+          to_address: string | null
+          tx_hash: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          coin_id: string
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          status?: string
+          symbol: string
+          to_address?: string | null
+          tx_hash?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          coin_id?: string
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          status?: string
+          symbol?: string
+          to_address?: string | null
+          tx_hash?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number
+          coin_id: string
+          created_at: string
+          id: string
+          name: string
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          coin_id: string
+          created_at?: string
+          id?: string
+          name: string
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          coin_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
