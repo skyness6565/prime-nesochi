@@ -49,8 +49,10 @@ export const useMarketChart = (coinId: string, days: number = 7) => {
       return data;
     },
     enabled: !!coinId,
-    staleTime: 30000,
-    refetchInterval: 60000,
+    staleTime: 120000, // 2 minutes
+    refetchInterval: 120000, // 2 minutes
+    retry: 2,
+    retryDelay: 3000,
   });
 };
 
@@ -66,7 +68,9 @@ export const useCoinDetail = (coinId: string) => {
       return data;
     },
     enabled: !!coinId,
-    staleTime: 30000,
+    staleTime: 120000, // 2 minutes
+    retry: 2,
+    retryDelay: 3000,
   });
 };
 
@@ -81,7 +85,9 @@ export const usePaginatedMarkets = (page: number = 1, perPage: number = 20) => {
       if (error) throw new Error(error.message);
       return data;
     },
-    staleTime: 30000,
-    refetchInterval: 60000,
+    staleTime: 120000, // 2 minutes
+    refetchInterval: 120000, // 2 minutes
+    retry: 2,
+    retryDelay: 3000,
   });
 };

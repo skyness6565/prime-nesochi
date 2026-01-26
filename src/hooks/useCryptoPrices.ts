@@ -49,7 +49,9 @@ export const useCryptoPrices = () => {
 
       return data;
     },
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 120000, // 2 minutes
+    staleTime: 120000, // 2 minutes
+    retry: 2,
+    retryDelay: 3000,
   });
 };
