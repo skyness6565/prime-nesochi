@@ -16,7 +16,24 @@ export interface CryptoPrice {
   total_volume: number;
 }
 
-const COIN_IDS = ["bitcoin", "ethereum", "tether", "solana", "binancecoin", "ripple", "cardano", "dogecoin"];
+// Extended list of popular cryptocurrencies
+const COIN_IDS = [
+  "bitcoin", 
+  "ethereum", 
+  "solana", 
+  "binancecoin", 
+  "tether", 
+  "ripple", 
+  "cardano", 
+  "dogecoin",
+  "polkadot",
+  "avalanche-2",
+  "chainlink",
+  "polygon",
+  "uniswap",
+  "litecoin",
+  "cosmos"
+];
 
 export const useCryptoPrices = () => {
   return useQuery({

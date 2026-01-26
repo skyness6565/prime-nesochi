@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      price_alerts: {
+        Row: {
+          coin_id: string
+          condition: string
+          created_at: string
+          id: string
+          is_active: boolean
+          symbol: string
+          target_price: number
+          triggered_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coin_id: string
+          condition?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          symbol: string
+          target_price: number
+          triggered_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coin_id?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          symbol?: string
+          target_price?: number
+          triggered_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -80,6 +116,36 @@ export type Database = {
           tx_hash?: string | null
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_wallets: {
+        Row: {
+          coin_id: string
+          created_at: string
+          id: string
+          network: string
+          symbol: string
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          coin_id: string
+          created_at?: string
+          id?: string
+          network: string
+          symbol: string
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          coin_id?: string
+          created_at?: string
+          id?: string
+          network?: string
+          symbol?: string
+          user_id?: string
+          wallet_address?: string
         }
         Relationships: []
       }

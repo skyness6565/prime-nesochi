@@ -1,12 +1,16 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownLeft, QrCode, RefreshCw, MoreHorizontal } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, QrCode, RefreshCw, Bell } from "lucide-react";
 import { useState } from "react";
 import SendModal from "./SendModal";
 import ReceiveModal from "./ReceiveModal";
+import SwapModal from "./SwapModal";
+import PriceAlertModal from "./PriceAlertModal";
 
 const QuickActions = () => {
   const [sendOpen, setSendOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
 
   const actions = [
     { 
@@ -22,20 +26,20 @@ const QuickActions = () => {
       onClick: () => setReceiveOpen(true)
     },
     { 
-      icon: QrCode, 
-      label: "Scan", 
-      color: "bg-secondary",
-      onClick: () => {}
-    },
-    { 
       icon: RefreshCw, 
       label: "Swap", 
       color: "bg-secondary",
-      onClick: () => {}
+      onClick: () => setSwapOpen(true)
     },
     { 
-      icon: MoreHorizontal, 
-      label: "More", 
+      icon: Bell, 
+      label: "Alerts", 
+      color: "bg-secondary",
+      onClick: () => setAlertOpen(true)
+    },
+    { 
+      icon: QrCode, 
+      label: "Scan", 
       color: "bg-secondary",
       onClick: () => {}
     },
@@ -63,6 +67,8 @@ const QuickActions = () => {
 
       <SendModal open={sendOpen} onOpenChange={setSendOpen} />
       <ReceiveModal open={receiveOpen} onOpenChange={setReceiveOpen} />
+      <SwapModal open={swapOpen} onOpenChange={setSwapOpen} />
+      <PriceAlertModal open={alertOpen} onOpenChange={setAlertOpen} />
     </>
   );
 };

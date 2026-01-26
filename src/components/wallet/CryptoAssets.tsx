@@ -1,37 +1,56 @@
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Search } from "lucide-react";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import { useWallet } from "@/hooks/useWallet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import CryptoSearch from "./CryptoSearch";
 
 const CryptoAssets = () => {
   const { data: prices, isLoading: pricesLoading } = useCryptoPrices();
   const { wallets, isLoading: walletsLoading } = useWallet();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const isLoading = pricesLoading || walletsLoading;
 
+  // Popular cryptos to show first
+  const popularCryptos = ["bitcoin", "ethereum", "solana", "binancecoin"];
+
   // Combine wallet balances with live prices
-  const assets = prices?.map((price) => {
-    const wallet = wallets.find((w) => w.coin_id === price.id);
-    const balance = wallet?.balance || 0;
-    const usdValue = balance * price.current_price;
+  const assets = useMemo(() => {
+    if (!prices) return [];
+    
+    return prices.map((price) => {
+      const wallet = wallets.find((w) => w.coin_id === price.id);
+      const balance = wallet?.balance || 0;
+      const usdValue = balance * price.current_price;
 
-    return {
-      id: price.id,
-      symbol: price.symbol.toUpperCase(),
-      name: price.name,
-      balance,
-      usdValue,
-      change24h: price.price_change_percentage_24h,
-      image: price.image,
-      currentPrice: price.current_price,
-    };
-  }) || [];
+      return {
+        id: price.id,
+        symbol: price.symbol.toUpperCase(),
+        name: price.name,
+        balance,
+        usdValue,
+        change24h: price.price_change_percentage_24h,
+        image: price.image,
+        currentPrice: price.current_price,
+        isPriority: popularCryptos.includes(price.id),
+      };
+    });
+  }, [prices, wallets]);
 
-  // Filter to show only assets with balance, or top 5 by market cap if no balance
-  const displayAssets = assets.filter((a) => a.balance > 0).length > 0
-    ? assets.filter((a) => a.balance > 0)
-    : assets.slice(0, 5);
+  // Sort: owned assets first, then priority cryptos, then by market cap
+  const displayAssets = useMemo(() => {
+    const withBalance = assets.filter((a) => a.balance > 0);
+    const priority = assets.filter((a) => a.balance === 0 && a.isPriority);
+    const others = assets.filter((a) => a.balance === 0 && !a.isPriority);
+    
+    if (withBalance.length > 0) {
+      return withBalance;
+    }
+    return [...priority, ...others].slice(0, 8);
+  }, [assets]);
 
   if (isLoading) {
     return (
@@ -61,68 +80,79 @@ const CryptoAssets = () => {
   const hasAssets = assets.some((a) => a.balance > 0);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
-      className="bg-card rounded-2xl border border-border overflow-hidden"
-    >
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <h3 className="font-semibold text-foreground">
-          {hasAssets ? "Your Assets" : "Market Prices"}
-        </h3>
-        <button className="text-sm text-primary hover:underline">
-          {hasAssets ? "Manage" : "View All"}
-        </button>
-      </div>
-
-      <div className="divide-y divide-border">
-        {displayAssets.map((asset, index) => (
-          <motion.div
-            key={asset.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className="flex items-center gap-3 p-4 hover:bg-secondary/30 transition-colors cursor-pointer"
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-card rounded-2xl border border-border overflow-hidden"
+      >
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h3 className="font-semibold text-foreground">
+            {hasAssets ? "Your Assets" : "Market Prices"}
+          </h3>
+          <button 
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
           >
-            <img
-              src={asset.image}
-              alt={asset.name}
-              className="w-10 h-10 rounded-full"
-            />
+            <Search className="w-4 h-4" />
+            Search
+          </button>
+        </div>
 
-            <div className="flex-1">
-              <div className="font-medium text-foreground">{asset.name}</div>
-              <div className="text-sm text-muted-foreground">
-                {hasAssets ? `${asset.balance.toFixed(6)} ${asset.symbol}` : asset.symbol}
-              </div>
-            </div>
+        <div className="divide-y divide-border">
+          {displayAssets.map((asset, index) => (
+            <motion.div
+              key={asset.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="flex items-center gap-3 p-4 hover:bg-secondary/30 transition-colors cursor-pointer"
+            >
+              <img
+                src={asset.image}
+                alt={asset.name}
+                className="w-10 h-10 rounded-full"
+              />
 
-            <div className="text-right">
-              <div className="font-medium text-foreground">
-                {hasAssets
-                  ? `$${asset.usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  : `$${asset.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              <div className="flex-1">
+                <div className="font-medium text-foreground">{asset.name}</div>
+                <div className="text-sm text-muted-foreground">
+                  {hasAssets ? `${asset.balance.toFixed(6)} ${asset.symbol}` : asset.symbol}
+                </div>
               </div>
-              <div className="flex items-center justify-end gap-1">
-                <span
-                  className={`text-xs flex items-center gap-0.5 ${
-                    asset.change24h >= 0 ? "text-success" : "text-destructive"
-                  }`}
-                >
-                  {asset.change24h >= 0 ? (
-                    <TrendingUp className="w-3 h-3" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3" />
-                  )}
-                  {Math.abs(asset.change24h).toFixed(2)}%
-                </span>
+
+              <div className="text-right">
+                <div className="font-medium text-foreground">
+                  {hasAssets
+                    ? `$${asset.usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : `$${asset.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                </div>
+                <div className="flex items-center justify-end gap-1">
+                  <span
+                    className={`text-xs flex items-center gap-0.5 ${
+                      asset.change24h >= 0 ? "text-success" : "text-destructive"
+                    }`}
+                  >
+                    {asset.change24h >= 0 ? (
+                      <TrendingUp className="w-3 h-3" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3" />
+                    )}
+                    {Math.abs(asset.change24h).toFixed(2)}%
+                  </span>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      <CryptoSearch 
+        open={searchOpen} 
+        onOpenChange={setSearchOpen}
+      />
+    </>
   );
 };
 

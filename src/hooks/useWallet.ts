@@ -75,28 +75,6 @@ export const useWallet = () => {
     enabled: !!user,
   });
 
-  const addWalletMutation = useMutation({
-    mutationFn: async (wallet: Omit<Wallet, "id" | "created_at" | "updated_at">) => {
-      const { data, error } = await supabase
-        .from("wallets")
-        .upsert({
-          user_id: wallet.user_id,
-          coin_id: wallet.coin_id,
-          symbol: wallet.symbol,
-          name: wallet.name,
-          balance: wallet.balance,
-        }, { onConflict: "user_id,coin_id" })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wallets"] });
-    },
-  });
-
   const sendCryptoMutation = useMutation({
     mutationFn: async ({
       coinId,
@@ -158,10 +136,6 @@ export const useWallet = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast({
-        title: "Transaction Sent",
-        description: "Your transaction has been submitted successfully.",
-      });
     },
     onError: (error: Error) => {
       toast({
@@ -244,7 +218,6 @@ export const useWallet = () => {
     wallets: walletsQuery.data || [],
     transactions: transactionsQuery.data || [],
     isLoading: walletsQuery.isLoading || transactionsQuery.isLoading,
-    addWallet: addWalletMutation.mutate,
     sendCrypto: sendCryptoMutation.mutate,
     receiveCrypto: receiveCryptoMutation.mutate,
     isSending: sendCryptoMutation.isPending,
