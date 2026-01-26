@@ -4,20 +4,46 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+const usernameSchema = z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be less than 20 characters").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores");
+const fullNameSchema = z.string().min(2, "Full name must be at least 2 characters").max(50, "Full name must be less than 50 characters");
+const countrySchema = z.string().min(1, "Please select a country");
+
+const COUNTRIES = [
+  "United States", "United Kingdom", "Canada", "Australia", "Germany", "France", 
+  "Japan", "South Korea", "Brazil", "India", "Mexico", "Spain", "Italy", 
+  "Netherlands", "Switzerland", "Singapore", "Hong Kong", "Nigeria", "South Africa",
+  "United Arab Emirates", "Saudi Arabia", "Indonesia", "Philippines", "Vietnam",
+  "Thailand", "Malaysia", "Poland", "Sweden", "Norway", "Denmark", "Finland",
+  "Austria", "Belgium", "Ireland", "Portugal", "New Zealand", "Argentina", "Chile",
+  "Colombia", "Peru", "Egypt", "Kenya", "Ghana", "Pakistan", "Bangladesh", "Other"
+];
+
+interface FormErrors {
+  email?: string;
+  password?: string;
+  username?: string;
+  fullName?: string;
+  country?: string;
+}
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [country, setCountry] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
@@ -29,7 +55,7 @@ const Auth = () => {
   }, [user, loading, navigate]);
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: FormErrors = {};
     
     const emailResult = emailSchema.safeParse(email);
     if (!emailResult.success) {
@@ -39,6 +65,23 @@ const Auth = () => {
     const passwordResult = passwordSchema.safeParse(password);
     if (!passwordResult.success) {
       newErrors.password = passwordResult.error.errors[0].message;
+    }
+
+    if (!isLogin) {
+      const usernameResult = usernameSchema.safeParse(username);
+      if (!usernameResult.success) {
+        newErrors.username = usernameResult.error.errors[0].message;
+      }
+
+      const fullNameResult = fullNameSchema.safeParse(fullName);
+      if (!fullNameResult.success) {
+        newErrors.fullName = fullNameResult.error.errors[0].message;
+      }
+
+      const countryResult = countrySchema.safeParse(country);
+      if (!countryResult.success) {
+        newErrors.country = countryResult.error.errors[0].message;
+      }
     }
     
     setErrors(newErrors);
@@ -77,7 +120,24 @@ const Auth = () => {
           navigate("/");
         }
       } else {
-        const { error } = await signUp(email, password);
+        // Check if username is already taken
+        const { data: existingUser } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("username", username)
+          .maybeSingle();
+
+        if (existingUser) {
+          toast({
+            title: "Username taken",
+            description: "This username is already in use. Please choose another.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        const { error, data } = await signUp(email, password);
         if (error) {
           if (error.message.includes("User already registered")) {
             toast({
@@ -92,7 +152,22 @@ const Auth = () => {
               variant: "destructive",
             });
           }
-        } else {
+        } else if (data?.user) {
+          // Update profile with additional fields
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({
+              username,
+              full_name: fullName,
+              country,
+              display_name: fullName || username,
+            })
+            .eq("user_id", data.user.id);
+
+          if (profileError) {
+            console.error("Error updating profile:", profileError);
+          }
+
           toast({
             title: "Account created!",
             description: "You have successfully signed up and logged in.",
@@ -185,6 +260,61 @@ const Auth = () => {
                 <p className="text-destructive text-sm mt-1">{errors.password}</p>
               )}
             </div>
+
+            {!isLogin && (
+              <>
+                <div>
+                  <Input
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                      if (errors.username) setErrors({ ...errors, username: undefined });
+                    }}
+                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground h-12"
+                  />
+                  {errors.username && (
+                    <p className="text-destructive text-sm mt-1">{errors.username}</p>
+                  )}
+                </div>
+
+                <div>
+                  <Input
+                    type="text"
+                    placeholder="Full Name"
+                    value={fullName}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      if (errors.fullName) setErrors({ ...errors, fullName: undefined });
+                    }}
+                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground h-12"
+                  />
+                  {errors.fullName && (
+                    <p className="text-destructive text-sm mt-1">{errors.fullName}</p>
+                  )}
+                </div>
+
+                <div>
+                  <Select value={country} onValueChange={(value) => {
+                    setCountry(value);
+                    if (errors.country) setErrors({ ...errors, country: undefined });
+                  }}>
+                    <SelectTrigger className="bg-secondary border-border text-foreground h-12">
+                      <SelectValue placeholder="Select your country" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {COUNTRIES.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.country && (
+                    <p className="text-destructive text-sm mt-1">{errors.country}</p>
+                  )}
+                </div>
+              </>
+            )}
 
             <Button
               type="submit"

@@ -8,6 +8,9 @@ export interface Profile {
   user_id: string;
   display_name: string | null;
   avatar_url: string | null;
+  username: string | null;
+  full_name: string | null;
+  country: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,7 +48,7 @@ export const useProfile = () => {
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "avatar_url">>) => {
+  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "avatar_url" | "username" | "full_name" | "country">>) => {
     if (!user) return { error: new Error("Not authenticated") };
 
     try {
