@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import NetworkFeeWarning from "@/components/wallet/NetworkFeeWarning";
+import TransferReceipt from "@/components/wallet/TransferReceipt";
 
 interface SendModalProps {
   open: boolean;
@@ -42,7 +43,7 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
   const { wallets, sendCrypto, isSending } = useWallet();
   const { findWalletByAddress } = useUserWallets();
   
-  const [step, setStep] = useState<"select" | "amount" | "confirm">("select");
+  const [step, setStep] = useState<"select" | "amount" | "confirm" | "receipt">("select");
   const [selectedCrypto, setSelectedCrypto] = useState<{
     id: string;
     symbol: string;
@@ -58,6 +59,8 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isValidatingAddress, setIsValidatingAddress] = useState(false);
   const [recipientInfo, setRecipientInfo] = useState<{ exists: boolean; userId?: string } | null>(null);
+  const [completedTxHash, setCompletedTxHash] = useState<string>("");
+  const [txTimestamp, setTxTimestamp] = useState<Date>(new Date());
 
   // Combine prices with wallet balances
   const cryptosWithBalance = prices?.map((price) => {
@@ -112,6 +115,8 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
       setAmount("");
       setSearchQuery("");
       setRecipientInfo(null);
+      setCompletedTxHash("");
+      setTxTimestamp(new Date());
     }, 300);
   };
 
@@ -210,6 +215,10 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
       toAddress: address,
     });
     
+    // Set receipt data
+    setCompletedTxHash(txHash);
+    setTxTimestamp(new Date());
+    
     toast({
       title: "Transaction Sent",
       description: recipientInfo?.exists 
@@ -217,7 +226,8 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
         : "Transaction submitted to the network.",
     });
     
-    handleClose();
+    // Show receipt
+    setStep("receipt");
   };
 
   if (!open) return null;
@@ -507,6 +517,29 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
                 </Button>
               </div>
             </motion.div>
+          )}
+
+          {/* Receipt Step */}
+          {step === "receipt" && selectedCrypto && (
+            <TransferReceipt
+              open={true}
+              onClose={handleClose}
+              type="send"
+              coinId={selectedCrypto.id}
+              coinSymbol={selectedCrypto.symbol}
+              coinName={selectedCrypto.name}
+              coinImage={selectedCrypto.image}
+              amount={parseFloat(amount)}
+              usdValue={parseFloat(amount) * selectedCrypto.currentPrice}
+              toAddress={address}
+              txHash={completedTxHash}
+              network={selectedNetwork}
+              status="completed"
+              timestamp={txTimestamp}
+              isPlatformTransfer={recipientInfo?.exists}
+              networkFee={REQUIRED_FEE_USD}
+              networkFeeSymbol={networkFeeCoin?.symbol}
+            />
           )}
         </motion.div>
       </motion.div>
