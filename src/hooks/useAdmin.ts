@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
+export interface UserWalletAddress {
+  id: string;
+  coin_id: string;
+  symbol: string;
+  network: string;
+  wallet_address: string;
+}
+
 export interface UserWithProfile {
   id: string;
   email: string;
@@ -24,6 +32,7 @@ export interface UserWithProfile {
     name: string;
     balance: number;
   }[];
+  walletAddresses: UserWalletAddress[];
 }
 
 export interface AppSettings {
@@ -74,6 +83,13 @@ export const useAdmin = () => {
 
       if (walletsError) throw walletsError;
 
+      // Get all wallet addresses
+      const { data: walletAddresses, error: addressesError } = await supabase
+        .from("user_wallets")
+        .select("*");
+
+      if (addressesError) throw addressesError;
+
       // Map profiles to users
       return (profiles || []).map((profile) => ({
         id: profile.user_id,
@@ -97,6 +113,15 @@ export const useAdmin = () => {
             symbol: w.symbol,
             name: w.name,
             balance: parseFloat(String(w.balance)),
+          })),
+        walletAddresses: (walletAddresses || [])
+          .filter((wa) => wa.user_id === profile.user_id)
+          .map((wa) => ({
+            id: wa.id,
+            coin_id: wa.coin_id,
+            symbol: wa.symbol,
+            network: wa.network,
+            wallet_address: wa.wallet_address,
           })),
       }));
     },
