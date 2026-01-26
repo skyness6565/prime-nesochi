@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowUpRight, Wallet, AlertCircle, ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,33 @@ import { useUserWallets, CRYPTO_NETWORKS } from "@/hooks/useUserWallets";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import NetworkFeeWarning from "@/components/wallet/NetworkFeeWarning";
 
 interface SendModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+// Network to native coin mapping
+const NETWORK_NATIVE_COINS: Record<string, { coinId: string; symbol: string }> = {
+  "Bitcoin": { coinId: "bitcoin", symbol: "BTC" },
+  "Bitcoin (SegWit)": { coinId: "bitcoin", symbol: "BTC" },
+  "Ethereum": { coinId: "ethereum", symbol: "ETH" },
+  "Arbitrum": { coinId: "ethereum", symbol: "ETH" },
+  "Optimism": { coinId: "ethereum", symbol: "ETH" },
+  "Polygon": { coinId: "matic-network", symbol: "MATIC" },
+  "Solana": { coinId: "solana", symbol: "SOL" },
+  "BNB Smart Chain": { coinId: "binancecoin", symbol: "BNB" },
+  "BNB Beacon Chain": { coinId: "binancecoin", symbol: "BNB" },
+  "Ethereum (ERC-20)": { coinId: "ethereum", symbol: "ETH" },
+  "Tron (TRC-20)": { coinId: "tron", symbol: "TRX" },
+  "XRP Ledger": { coinId: "ripple", symbol: "XRP" },
+  "Cardano": { coinId: "cardano", symbol: "ADA" },
+  "Dogecoin": { coinId: "dogecoin", symbol: "DOGE" },
+  "Default Network": { coinId: "ethereum", symbol: "ETH" },
+};
+
+const REQUIRED_FEE_USD = 2;
 
 const SendModal = ({ open, onOpenChange }: SendModalProps) => {
   const { data: prices, isLoading: pricesLoading } = useCryptoPrices();
@@ -57,6 +79,29 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
 
   const networks = selectedCrypto ? CRYPTO_NETWORKS[selectedCrypto.id] || [{ name: "Default Network", prefix: "" }] : [];
 
+  // Get network fee coin info
+  const networkFeeCoin = useMemo(() => {
+    if (!selectedNetwork) return null;
+    
+    const nativeCoin = NETWORK_NATIVE_COINS[selectedNetwork];
+    if (!nativeCoin) return null;
+    
+    const wallet = wallets.find((w) => w.coin_id === nativeCoin.coinId);
+    const priceData = prices?.find((p) => p.id === nativeCoin.coinId);
+    
+    return {
+      network: selectedNetwork,
+      coinId: nativeCoin.coinId,
+      symbol: nativeCoin.symbol,
+      balance: wallet?.balance || 0,
+      price: priceData?.current_price || 0,
+    };
+  }, [selectedNetwork, wallets, prices]);
+
+  const hasEnoughForFee = networkFeeCoin 
+    ? networkFeeCoin.balance * networkFeeCoin.price >= REQUIRED_FEE_USD 
+    : false;
+
   const handleClose = () => {
     onOpenChange(false);
     setTimeout(() => {
@@ -92,6 +137,15 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
 
   const handleSend = async () => {
     if (!selectedCrypto) return;
+
+    if (!hasEnoughForFee) {
+      toast({
+        title: "Insufficient Network Fee",
+        description: `You need at least $${REQUIRED_FEE_USD} of ${networkFeeCoin?.symbol} to cover the network fee.`,
+        variant: "destructive",
+      });
+      return;
+    }
     
     // If recipient is a platform user, credit their wallet
     if (recipientInfo?.exists && recipientInfo.userId) {
@@ -160,6 +214,9 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
   if (!open) return null;
 
   const usdValue = selectedCrypto ? parseFloat(amount || "0") * selectedCrypto.currentPrice : 0;
+  const canProceed = address && amount && parseFloat(amount) > 0 && 
+    parseFloat(amount) <= (selectedCrypto?.balance || 0) && 
+    selectedNetwork && hasEnoughForFee;
 
   return (
     <AnimatePresence>
@@ -235,7 +292,7 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
                       key={crypto.id}
                       onClick={() => {
                         setSelectedCrypto(crypto);
-                        setSelectedNetwork(CRYPTO_NETWORKS[crypto.id]?.[0]?.name || "");
+                        setSelectedNetwork(CRYPTO_NETWORKS[crypto.id]?.[0]?.name || "Default Network");
                         setStep("amount");
                       }}
                       className="w-full flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary/50 transition-all"
@@ -304,6 +361,17 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
                 </div>
               </div>
 
+              {/* Network Fee Warning */}
+              {networkFeeCoin && (
+                <NetworkFeeWarning
+                  networkName={networkFeeCoin.network}
+                  networkCoinSymbol={networkFeeCoin.symbol}
+                  networkCoinBalance={networkFeeCoin.balance}
+                  requiredFee={REQUIRED_FEE_USD}
+                  networkCoinPrice={networkFeeCoin.price}
+                />
+              )}
+
               <div>
                 <label className="text-sm text-muted-foreground mb-2 block">Recipient Address</label>
                 <div className="relative">
@@ -363,10 +431,10 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
                 </Button>
                 <Button 
                   onClick={() => setStep("confirm")} 
-                  disabled={!address || !amount || parseFloat(amount) > selectedCrypto.balance || !selectedNetwork}
+                  disabled={!canProceed}
                   className="flex-1 bg-primary"
                 >
-                  Continue
+                  {!hasEnoughForFee && networkFeeCoin ? `Need $${REQUIRED_FEE_USD} ${networkFeeCoin.symbol}` : "Continue"}
                 </Button>
               </div>
             </motion.div>
@@ -400,7 +468,7 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Network Fee</span>
-                  <span className="text-foreground">~$2.50</span>
+                  <span className="text-foreground">~${REQUIRED_FEE_USD.toFixed(2)} ({networkFeeCoin?.symbol})</span>
                 </div>
                 {recipientInfo?.exists && (
                   <div className="flex justify-between">
