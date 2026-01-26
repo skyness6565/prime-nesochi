@@ -146,6 +146,9 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
       });
       return;
     }
+
+    const txHash = `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
+    const sendAmount = parseFloat(amount);
     
     // If recipient is a platform user, credit their wallet
     if (recipientInfo?.exists && recipientInfo.userId) {
@@ -158,15 +161,16 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
         .maybeSingle();
 
       const currentBalance = recipientWallet ? parseFloat(String(recipientWallet.balance)) : 0;
-      const newBalance = currentBalance + parseFloat(amount);
+      const newBalance = currentBalance + sendAmount;
 
       if (recipientWallet) {
+        // Update recipient's wallet - ADD to their balance
         await supabase
           .from("wallets")
           .update({ balance: newBalance })
           .eq("id", recipientWallet.id);
       } else {
-        // Get coin name from prices
+        // Create new wallet for recipient with the received amount
         const coinData = prices?.find(p => p.id === selectedCrypto.id);
         await supabase
           .from("wallets")
@@ -175,11 +179,15 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
             coin_id: selectedCrypto.id,
             symbol: selectedCrypto.symbol,
             name: coinData?.name || selectedCrypto.name,
-            balance: parseFloat(amount),
+            balance: sendAmount,
           });
       }
 
-      // Create receive transaction for recipient
+      // Get sender's wallet address for the from_address field
+      const senderWallet = await findWalletByAddress(address);
+      const senderAddress = senderWallet?.wallet_address || "Platform Transfer";
+
+      // Create receive transaction for recipient - shows they received crypto
       await supabase
         .from("transactions")
         .insert({
@@ -187,24 +195,25 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
           type: "receive",
           coin_id: selectedCrypto.id,
           symbol: selectedCrypto.symbol,
-          amount: parseFloat(amount),
-          from_address: address,
+          amount: sendAmount,
+          from_address: senderAddress,
           status: "completed",
-          tx_hash: `0x${Math.random().toString(16).slice(2)}`,
+          tx_hash: txHash,
         });
     }
     
+    // This will SUBTRACT from sender's balance
     sendCrypto({
       coinId: selectedCrypto.id,
       symbol: selectedCrypto.symbol,
-      amount: parseFloat(amount),
+      amount: sendAmount,
       toAddress: address,
     });
     
     toast({
       title: "Transaction Sent",
       description: recipientInfo?.exists 
-        ? "Funds transferred to platform user successfully!"
+        ? `${amount} ${selectedCrypto.symbol} transferred successfully!`
         : "Transaction submitted to the network.",
     });
     
