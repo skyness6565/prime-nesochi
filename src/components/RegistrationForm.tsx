@@ -1,12 +1,21 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const emailSchema = z.string().email("Please enter a valid email address");
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
 const RegistrationForm = () => {
   const [activeTab, setActiveTab] = useState<"email" | "mobile">("email");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formData, setFormData] = useState({
     email: "",
     phone: "",
@@ -14,10 +23,101 @@ const RegistrationForm = () => {
     referralCode: "CRYPTOX"
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form submitted:", formData);
+  const { signUp, user } = useAuth();
+  const navigate = useNavigate();
+
+  const validateForm = () => {
+    const newErrors: { email?: string; password?: string } = {};
+    
+    if (activeTab === "email") {
+      const emailResult = emailSchema.safeParse(formData.email);
+      if (!emailResult.success) {
+        newErrors.email = emailResult.error.errors[0].message;
+      }
+    }
+    
+    const passwordResult = passwordSchema.safeParse(formData.password);
+    if (!passwordResult.success) {
+      newErrors.password = passwordResult.error.errors[0].message;
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (activeTab === "mobile") {
+      toast({
+        title: "Coming soon",
+        description: "Phone registration will be available soon. Please use email for now.",
+      });
+      return;
+    }
+
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const { error } = await signUp(formData.email, formData.password);
+      
+      if (error) {
+        if (error.message.includes("User already registered")) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please log in instead.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Registration failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Welcome to CryptoX!",
+          description: "Your account has been created successfully.",
+        });
+        navigate("/");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // If user is already logged in, show a different message
+  if (user) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="w-full max-w-md"
+      >
+        <div className="bg-card rounded-2xl p-6 md:p-8 border border-border text-center">
+          <div className="w-16 h-16 bg-highlight/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="w-8 h-8 text-highlight" />
+          </div>
+          <h2 className="text-2xl font-bold text-card-foreground mb-2">
+            You're logged in!
+          </h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            Welcome back, {user.email}
+          </p>
+          <Button 
+            onClick={() => navigate("/")}
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-base"
+          >
+            Start Trading
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 
@@ -77,9 +177,15 @@ const RegistrationForm = () => {
                 type="email"
                 placeholder="Email address"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  if (errors.email) setErrors({ ...errors, email: undefined });
+                }}
                 className="bg-secondary border-border text-foreground placeholder:text-muted-foreground h-12"
               />
+              {errors.email && (
+                <p className="text-destructive text-sm mt-1">{errors.email}</p>
+              )}
             </div>
           ) : (
             <div>
@@ -98,7 +204,10 @@ const RegistrationForm = () => {
               type={showPassword ? "text" : "password"}
               placeholder="Create a password"
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, password: e.target.value });
+                if (errors.password) setErrors({ ...errors, password: undefined });
+              }}
               className="bg-secondary border-border text-foreground placeholder:text-muted-foreground h-12 pr-12"
             />
             <button
@@ -108,6 +217,9 @@ const RegistrationForm = () => {
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
+            {errors.password && (
+              <p className="text-destructive text-sm mt-1">{errors.password}</p>
+            )}
           </div>
 
           <div className="relative">
@@ -126,10 +238,15 @@ const RegistrationForm = () => {
           </div>
 
           <Button 
-            type="submit" 
+            type="submit"
+            disabled={isSubmitting}
             className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-base transition-all duration-200 active:scale-[0.98]"
           >
-            Next
+            {isSubmitting ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
+            ) : (
+              "Next"
+            )}
           </Button>
         </form>
 
@@ -143,8 +260,10 @@ const RegistrationForm = () => {
         {/* Social Buttons */}
         <div className="grid grid-cols-3 gap-3">
           <motion.button 
+            type="button"
             whileTap={{ scale: 0.95 }}
             className="h-12 bg-secondary hover:bg-secondary/80 rounded-lg flex items-center justify-center transition-colors border border-border"
+            onClick={() => toast({ title: "Coming soon", description: "Google login will be available soon." })}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -167,8 +286,10 @@ const RegistrationForm = () => {
           </motion.button>
           
           <motion.button 
+            type="button"
             whileTap={{ scale: 0.95 }}
             className="h-12 bg-secondary hover:bg-secondary/80 rounded-lg flex items-center justify-center transition-colors border border-border"
+            onClick={() => toast({ title: "Coming soon", description: "Apple login will be available soon." })}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -176,8 +297,10 @@ const RegistrationForm = () => {
           </motion.button>
           
           <motion.button 
+            type="button"
             whileTap={{ scale: 0.95 }}
             className="h-12 bg-secondary hover:bg-secondary/80 rounded-lg flex items-center justify-center transition-colors border border-border"
+            onClick={() => toast({ title: "Coming soon", description: "Telegram login will be available soon." })}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
