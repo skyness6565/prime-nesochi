@@ -2,10 +2,8 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowDownLeft, Copy, Check, Share2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
-import { useWallet } from "@/hooks/useWallet";
 import { useUserWallets, CRYPTO_NETWORKS } from "@/hooks/useUserWallets";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
@@ -18,7 +16,6 @@ interface ReceiveModalProps {
 
 const ReceiveModal = ({ open, onOpenChange }: ReceiveModalProps) => {
   const { data: prices, isLoading } = useCryptoPrices();
-  const { receiveCrypto } = useWallet();
   const { userWallets, getWalletAddress, isLoading: walletsLoading } = useUserWallets();
   
   const [selectedCrypto, setSelectedCrypto] = useState<{
@@ -30,7 +27,6 @@ const ReceiveModal = ({ open, onOpenChange }: ReceiveModalProps) => {
   const [selectedNetwork, setSelectedNetwork] = useState<string>("");
   const [showNetworkSelect, setShowNetworkSelect] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [simulateAmount, setSimulateAmount] = useState("");
   const [step, setStep] = useState<"select" | "details">("select");
 
   // Popular cryptos to show first
@@ -75,35 +71,12 @@ const ReceiveModal = ({ open, onOpenChange }: ReceiveModalProps) => {
     }
   };
 
-  const handleSimulateReceive = () => {
-    if (!selectedCrypto || !simulateAmount) return;
-    
-    const cryptoData = prices?.find(p => p.id === selectedCrypto.id);
-    
-    receiveCrypto({
-      coinId: selectedCrypto.id,
-      symbol: selectedCrypto.symbol,
-      name: cryptoData?.name || selectedCrypto.name,
-      amount: parseFloat(simulateAmount),
-      fromAddress: `0x${Math.random().toString(16).slice(2, 42)}`,
-    });
-    
-    toast({
-      title: "Funds Received!",
-      description: `${simulateAmount} ${selectedCrypto.symbol} has been added to your wallet.`,
-    });
-    
-    setSimulateAmount("");
-    onOpenChange(false);
-  };
-
   const handleClose = () => {
     onOpenChange(false);
     setTimeout(() => {
       setStep("select");
       setSelectedCrypto(null);
       setSelectedNetwork("");
-      setSimulateAmount("");
     }, 300);
   };
 
@@ -337,25 +310,11 @@ const ReceiveModal = ({ open, onOpenChange }: ReceiveModalProps) => {
                 </Button>
               </div>
 
-              {/* Simulate receiving for testing */}
+              {/* Important Note */}
               <div className="border-t border-border pt-4 mt-4">
-                <p className="text-sm text-muted-foreground mb-2">Simulate receiving (for testing)</p>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="Amount"
-                    value={simulateAmount}
-                    onChange={(e) => setSimulateAmount(e.target.value)}
-                    className="flex-1 bg-secondary border-border"
-                  />
-                  <Button 
-                    onClick={handleSimulateReceive}
-                    disabled={!simulateAmount}
-                    className="bg-success hover:bg-success/90"
-                  >
-                    Receive
-                  </Button>
-                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  Only send {selectedCrypto.name} to this address on the selected network
+                </p>
               </div>
             </motion.div>
           )}
