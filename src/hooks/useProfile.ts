@@ -11,6 +11,8 @@ export interface Profile {
   username: string | null;
   full_name: string | null;
   country: string | null;
+  preferred_currency: string | null;
+  preferred_language: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -48,7 +50,7 @@ export const useProfile = () => {
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "avatar_url" | "username" | "full_name" | "country">>) => {
+  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "avatar_url" | "username" | "full_name" | "country" | "preferred_currency" | "preferred_language">>) => {
     if (!user) return { error: new Error("Not authenticated") };
 
     try {
