@@ -3,12 +3,14 @@ import { Eye, EyeOff, TrendingUp, TrendingDown } from "lucide-react";
 import { useState } from "react";
 import { useWallet } from "@/hooks/useWallet";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
+import { useSettings } from "@/contexts/SettingsContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const WalletBalance = () => {
   const [isHidden, setIsHidden] = useState(false);
   const { wallets, isLoading: walletsLoading } = useWallet();
   const { data: prices, isLoading: pricesLoading } = useCryptoPrices();
+  const { t, formatAmount, currency } = useSettings();
 
   const isLoading = walletsLoading || pricesLoading;
 
@@ -62,7 +64,7 @@ const WalletBalance = () => {
       
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-primary-foreground/70 text-sm font-medium">Total Balance</span>
+          <span className="text-primary-foreground/70 text-sm font-medium">{t("totalBalance")}</span>
           <button 
             onClick={() => setIsHidden(!isHidden)}
             className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -77,9 +79,9 @@ const WalletBalance = () => {
 
         <div className="flex items-baseline gap-2 mb-4">
           <span className="text-4xl font-bold text-primary-foreground">
-            {isHidden ? "••••••" : `$${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            {isHidden ? "••••••" : formatAmount(totalBalance)}
           </span>
-          <span className="text-primary-foreground/70 text-lg">USD</span>
+          <span className="text-primary-foreground/70 text-lg">{currency}</span>
         </div>
 
         {totalBalance > 0 ? (
@@ -92,11 +94,11 @@ const WalletBalance = () => {
               <TrendingDown className="w-3.5 h-3.5" />
             )}
             <span>{isPositive ? "+" : ""}{percentChange.toFixed(2)}%</span>
-            <span className="text-primary-foreground/50 ml-1">24h</span>
+            <span className="text-primary-foreground/50 ml-1">{t("24hChange")}</span>
           </div>
         ) : (
           <p className="text-primary-foreground/70 text-sm">
-            Start by receiving some crypto
+            {t("startByReceiving")}
           </p>
         )}
       </div>

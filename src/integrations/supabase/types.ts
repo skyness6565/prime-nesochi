@@ -112,6 +112,8 @@ export type Database = {
           full_name: string | null
           id: string
           is_frozen: boolean
+          preferred_currency: string | null
+          preferred_language: string | null
           updated_at: string
           user_id: string
           username: string | null
@@ -126,6 +128,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_frozen?: boolean
+          preferred_currency?: string | null
+          preferred_language?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
@@ -140,6 +144,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_frozen?: boolean
+          preferred_currency?: string | null
+          preferred_language?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null

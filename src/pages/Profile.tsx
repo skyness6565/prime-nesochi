@@ -20,14 +20,17 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "@/hooks/use-toast";
 import BottomNavigation from "@/components/wallet/BottomNavigation";
+import CurrencyLanguageSettings from "@/components/settings/CurrencyLanguageSettings";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile, updateProfile, uploadAvatar, loading } = useProfile();
   const { isAdmin } = useAdmin();
+  const { t } = useSettings();
   
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -69,14 +72,14 @@ const Profile = () => {
   };
 
   const menuItems = [
-    { icon: Shield, label: "Security", description: "2FA, Password", onClick: () => {} },
-    { icon: Bell, label: "Notifications", description: "Push, Email", onClick: () => {} },
-    { icon: Moon, label: "Appearance", description: "Dark mode", onClick: () => {} },
-    { icon: HelpCircle, label: "Help & Support", description: "FAQ, Contact", onClick: () => {} },
+    { icon: Shield, label: t("security"), description: t("twoFAPassword"), onClick: () => {} },
+    { icon: Bell, label: t("notifications"), description: t("pushEmail"), onClick: () => {} },
+    { icon: Moon, label: t("appearance"), description: t("darkMode"), onClick: () => {} },
+    { icon: HelpCircle, label: t("helpSupport"), description: t("faqContact"), onClick: () => {} },
     ...(isAdmin ? [{ 
       icon: Settings, 
-      label: "Admin Panel", 
-      description: "Manage users & settings", 
+      label: t("adminPanel"), 
+      description: t("manageUsersSettings"), 
       onClick: () => navigate("/admin") 
     }] : []),
   ];
@@ -103,7 +106,7 @@ const Profile = () => {
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground">Profile</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t("profile")}</h1>
         </div>
       </header>
 
@@ -190,18 +193,21 @@ const Profile = () => {
               <Shield className="w-5 h-5 text-highlight" />
             </div>
             <div>
-              <p className="font-medium text-foreground">Verified Account</p>
-              <p className="text-sm text-muted-foreground">Identity verified</p>
+              <p className="font-medium text-foreground">{t("verifiedAccount")}</p>
+              <p className="text-sm text-muted-foreground">{t("identityVerified")}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <Mail className="w-4 h-4 text-muted-foreground" />
             <span className="text-muted-foreground">{user?.email}</span>
             <span className="ml-auto px-2 py-0.5 bg-highlight/20 text-highlight rounded-full text-xs">
-              Verified
+              {t("verified")}
             </span>
           </div>
         </motion.div>
+
+        {/* Currency & Language Settings */}
+        <CurrencyLanguageSettings />
 
         {/* Menu Items */}
         <motion.div 
@@ -240,13 +246,13 @@ const Profile = () => {
             className="w-full h-12 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
           >
             <LogOut className="w-5 h-5 mr-2" />
-            Sign Out
+            {t("signOut")}
           </Button>
         </motion.div>
 
         {/* App Version */}
         <p className="text-center text-sm text-muted-foreground">
-          CryptoX Wallet v1.0.0
+          {t("appVersion")}
         </p>
       </main>
 
