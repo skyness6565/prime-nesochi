@@ -5,9 +5,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Simple in-memory cache
+// Longer cache duration to avoid rate limits
 const cache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_DURATION = 30000; // 30 seconds
+const CACHE_DURATION = 120000; // 2 minutes cache
+const STALE_CACHE_DURATION = 600000; // 10 minutes for fallback
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,27 +22,23 @@ serve(async (req) => {
     let cacheKey: string;
 
     if (action === "market_chart" && coinId) {
-      // Get historical chart data for a specific coin
       cacheKey = `chart_${coinId}_${days}`;
       url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days || 7}`;
     } else if (action === "coin_detail" && coinId) {
-      // Get detailed info for a specific coin
       cacheKey = `detail_${coinId}`;
       url = `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`;
     } else if (action === "markets_paginated") {
-      // Get paginated markets list
       const currentPage = page || 1;
       const itemsPerPage = perPage || 20;
       cacheKey = `markets_${currentPage}_${itemsPerPage}`;
       url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${itemsPerPage}&page=${currentPage}&sparkline=true&price_change_percentage=24h,7d`;
     } else {
-      // Default: get specific coin IDs or top coins
       const ids = coinIds?.join(",") || "bitcoin,ethereum,tether,solana,binancecoin,ripple,cardano,dogecoin,polkadot,avalanche-2,chainlink,polygon,uniswap,litecoin,cosmos";
       cacheKey = `coins_${ids}`;
       url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d`;
     }
 
-    // Check cache
+    // Check cache - return if fresh
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       console.log(`Cache hit for ${cacheKey}`);
@@ -51,11 +48,40 @@ serve(async (req) => {
     }
 
     console.log(`Fetching from CoinGecko: ${url}`);
-    const response = await fetch(url);
+    
+    // Add delay between requests to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const response = await fetch(url, {
+      headers: {
+        "Accept": "application/json",
+      },
+    });
+
+    // If rate limited, return stale cache if available
+    if (response.status === 429) {
+      console.log("Rate limited by CoinGecko");
+      if (cached && Date.now() - cached.timestamp < STALE_CACHE_DURATION) {
+        console.log(`Returning stale cache for ${cacheKey}`);
+        return new Response(JSON.stringify(cached.data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw new Error("Rate limited - please try again in a moment");
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`CoinGecko API error: ${response.status} - ${errorText}`);
+      
+      // Return stale cache if available
+      if (cached) {
+        console.log(`API error, returning stale cache for ${cacheKey}`);
+        return new Response(JSON.stringify(cached.data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
       throw new Error(`CoinGecko API error: ${response.status}`);
     }
 
