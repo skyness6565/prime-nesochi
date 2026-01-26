@@ -12,12 +12,14 @@ import {
   HelpCircle, 
   LogOut,
   ChevronRight,
-  Check
+  Check,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
+import { useAdmin } from "@/hooks/useAdmin";
 import { toast } from "@/hooks/use-toast";
 import BottomNavigation from "@/components/wallet/BottomNavigation";
 
@@ -25,6 +27,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile, updateProfile, uploadAvatar, loading } = useProfile();
+  const { isAdmin } = useAdmin();
   
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -70,6 +73,12 @@ const Profile = () => {
     { icon: Bell, label: "Notifications", description: "Push, Email", onClick: () => {} },
     { icon: Moon, label: "Appearance", description: "Dark mode", onClick: () => {} },
     { icon: HelpCircle, label: "Help & Support", description: "FAQ, Contact", onClick: () => {} },
+    ...(isAdmin ? [{ 
+      icon: Settings, 
+      label: "Admin Panel", 
+      description: "Manage users & settings", 
+      onClick: () => navigate("/admin") 
+    }] : []),
   ];
 
   if (loading) {
