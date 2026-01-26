@@ -12,6 +12,8 @@ import SlippageSettings from "@/components/wallet/SlippageSettings";
 import SwapHistory from "@/components/wallet/SwapHistory";
 import PriceImpactWarning from "@/components/wallet/PriceImpactWarning";
 import NetworkFeeWarning from "@/components/wallet/NetworkFeeWarning";
+import AccountFrozenBanner from "@/components/wallet/AccountFrozenBanner";
+import { useAccountStatus } from "@/hooks/useAdmin";
 
 // Network to native coin mapping
 const NETWORK_NATIVE_COINS: Record<string, { coinId: string; symbol: string }> = {
@@ -36,6 +38,7 @@ const REQUIRED_FEE_USD = 2; // Minimum $2 for network fee
 const SwapPage = () => {
   const { data: prices, isLoading: pricesLoading } = useCryptoPrices();
   const { wallets, sendCrypto, receiveCrypto, isSending } = useWallet();
+  const { data: accountStatus } = useAccountStatus();
   
   const [slippage, setSlippage] = useState(0.5);
   const [fromCrypto, setFromCrypto] = useState<{
@@ -169,6 +172,15 @@ const SwapPage = () => {
   const handleConfirmSwap = async () => {
     if (!fromCrypto || !toCrypto || !fromAmount) return;
 
+    if (accountStatus?.is_frozen) {
+      toast({
+        title: "Account Frozen",
+        description: "Your account is frozen. You cannot make transactions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!hasEnoughForFee) {
       toast({
         title: "Insufficient Network Fee",
@@ -241,6 +253,11 @@ const SwapPage = () => {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Account Frozen Banner */}
+        {accountStatus?.is_frozen && (
+          <AccountFrozenBanner reason={accountStatus.frozen_reason} />
+        )}
+
         <AnimatePresence mode="wait">
           {selectingFor ? (
             <motion.div

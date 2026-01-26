@@ -5,43 +5,60 @@ import SendModal from "./SendModal";
 import ReceiveModal from "./ReceiveModal";
 import SwapModal from "./SwapModal";
 import PriceAlertModal from "./PriceAlertModal";
+import { toast } from "@/hooks/use-toast";
 
-const QuickActions = () => {
+interface QuickActionsProps {
+  disabled?: boolean;
+}
+
+const QuickActions = ({ disabled = false }: QuickActionsProps) => {
   const [sendOpen, setSendOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
+
+  const handleAction = (action: () => void) => {
+    if (disabled) {
+      toast({
+        title: "Account Frozen",
+        description: "Your account is frozen. You cannot perform transactions.",
+        variant: "destructive",
+      });
+      return;
+    }
+    action();
+  };
 
   const actions = [
     { 
       icon: ArrowUpRight, 
       label: "Send", 
       color: "bg-primary",
-      onClick: () => setSendOpen(true)
+      onClick: () => handleAction(() => setSendOpen(true))
     },
     { 
       icon: ArrowDownLeft, 
       label: "Receive", 
       color: "bg-success",
-      onClick: () => setReceiveOpen(true)
+      onClick: () => handleAction(() => setReceiveOpen(true))
     },
     { 
       icon: RefreshCw, 
       label: "Swap", 
       color: "bg-secondary",
-      onClick: () => setSwapOpen(true)
+      onClick: () => handleAction(() => setSwapOpen(true))
     },
     { 
       icon: Bell, 
       label: "Alerts", 
       color: "bg-secondary",
-      onClick: () => setAlertOpen(true)
+      onClick: () => setAlertOpen(true) // Alerts don't need to be blocked
     },
     { 
       icon: QrCode, 
       label: "Scan", 
       color: "bg-secondary",
-      onClick: () => {}
+      onClick: () => handleAction(() => {})
     },
   ];
 
@@ -55,7 +72,9 @@ const QuickActions = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             onClick={action.onClick}
-            className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-200 active:scale-95"
+            className={`flex flex-col items-center gap-2 p-3 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-200 active:scale-95 ${
+              disabled && action.label !== "Alerts" ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             <div className={`w-11 h-11 rounded-full ${action.color} flex items-center justify-center`}>
               <action.icon className="w-5 h-5 text-primary-foreground" />

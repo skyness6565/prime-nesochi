@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action_type: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          target_user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       price_alerts: {
         Row: {
           coin_id: string
@@ -56,8 +107,11 @@ export type Database = {
           country: string | null
           created_at: string
           display_name: string | null
+          frozen_at: string | null
+          frozen_reason: string | null
           full_name: string | null
           id: string
+          is_frozen: boolean
           updated_at: string
           user_id: string
           username: string | null
@@ -67,8 +121,11 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          frozen_at?: string | null
+          frozen_reason?: string | null
           full_name?: string | null
           id?: string
+          is_frozen?: boolean
           updated_at?: string
           user_id: string
           username?: string | null
@@ -78,8 +135,11 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          frozen_at?: string | null
+          frozen_reason?: string | null
           full_name?: string | null
           id?: string
+          is_frozen?: boolean
           updated_at?: string
           user_id?: string
           username?: string | null
@@ -124,6 +184,27 @@ export type Database = {
           to_address?: string | null
           tx_hash?: string | null
           type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -196,10 +277,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -326,6 +413,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
