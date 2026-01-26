@@ -1,6 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { generateDefaultWalletAddresses, CRYPTO_ADDRESS_CONFIGS } from "@/lib/walletAddressGenerator";
 
 export interface UserWallet {
   id: string;
@@ -11,14 +12,6 @@ export interface UserWallet {
   wallet_address: string;
   created_at: string;
 }
-
-// Default wallet addresses for new users
-const DEFAULT_WALLETS = [
-  { coin_id: "bitcoin", symbol: "BTC", network: "Bitcoin", wallet_address: "114deTkH9FJMbE1mKVrVn95MbkDX7bWMoy" },
-  { coin_id: "ethereum", symbol: "ETH", network: "Ethereum", wallet_address: "0x3a7d57b99cb20bcc0f651544e5d98000fa5ca3f7" },
-  { coin_id: "solana", symbol: "SOL", network: "Solana", wallet_address: "5Zxr4aXYoFbpNPHm6H8e3gZ5vsLBRgL6DzmUrQVHbzTG" },
-  { coin_id: "binancecoin", symbol: "BNB", network: "BNB Smart Chain", wallet_address: "0x3a7d57b99cb20bcc0f651544e5d98000fa5ca3f7" },
-];
 
 // Network configurations for each crypto
 export const CRYPTO_NETWORKS: Record<string, { name: string; prefix: string }[]> = {
@@ -53,6 +46,27 @@ export const CRYPTO_NETWORKS: Record<string, { name: string; prefix: string }[]>
   dogecoin: [
     { name: "Dogecoin", prefix: "D" },
   ],
+  polkadot: [
+    { name: "Polkadot", prefix: "1" },
+  ],
+  "avalanche-2": [
+    { name: "Avalanche C-Chain", prefix: "0x" },
+  ],
+  chainlink: [
+    { name: "Ethereum", prefix: "0x" },
+  ],
+  polygon: [
+    { name: "Polygon", prefix: "0x" },
+  ],
+  uniswap: [
+    { name: "Ethereum", prefix: "0x" },
+  ],
+  litecoin: [
+    { name: "Litecoin", prefix: "L" },
+  ],
+  cosmos: [
+    { name: "Cosmos", prefix: "cosmos1" },
+  ],
 };
 
 export const useUserWallets = () => {
@@ -71,11 +85,15 @@ export const useUserWallets = () => {
 
       if (error) throw error;
       
-      // If no wallets exist, create default ones
+      // If no wallets exist, create default ones with random addresses
       if (!data || data.length === 0) {
-        const newWallets = DEFAULT_WALLETS.map(w => ({
+        const defaultAddresses = generateDefaultWalletAddresses();
+        const newWallets = defaultAddresses.map(w => ({
           user_id: user.id,
-          ...w
+          coin_id: w.coinId,
+          symbol: w.symbol,
+          network: w.network,
+          wallet_address: (w as any).wallet_address,
         }));
         
         const { data: insertedData, error: insertError } = await supabase
@@ -112,10 +130,15 @@ export const useUserWallets = () => {
     return wallet?.wallet_address;
   };
 
+  const refetch = () => {
+    queryClient.invalidateQueries({ queryKey: ["user-wallets", user?.id] });
+  };
+
   return {
     userWallets: walletsQuery.data || [],
     isLoading: walletsQuery.isLoading,
     findWalletByAddress,
     getWalletAddress,
+    refetch,
   };
 };
