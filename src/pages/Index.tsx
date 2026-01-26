@@ -1,9 +1,28 @@
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import RegistrationForm from "@/components/RegistrationForm";
 import FeatureList from "@/components/FeatureList";
+import Dashboard from "./Dashboard";
 
 const Index = () => {
+  const { user, loading } = useAuth();
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If user is logged in, show the wallet dashboard
+  if (user) {
+    return <Dashboard />;
+  }
+
+  // Otherwise show the landing page
   return (
     <div className="min-h-screen bg-background">
       <Header />
