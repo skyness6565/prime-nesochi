@@ -278,11 +278,7 @@ const RegistrationForm = () => {
         </form>
 
         {/* Divider */}
-        <div className="flex items-center gap-4 my-6">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-muted-foreground text-sm">Or register via</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
+        
 
         {/* Social Buttons */}
         
