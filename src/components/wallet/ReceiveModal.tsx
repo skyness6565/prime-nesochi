@@ -9,6 +9,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 
+// Import static QR code images for main cryptocurrencies
+import bitcoinQR from "@/assets/qr-codes/bitcoin-qr.png";
+import ethereumQR from "@/assets/qr-codes/eth-qr.png";
+import solanaQR from "@/assets/qr-codes/solana-qr.png";
+import bnbQR from "@/assets/qr-codes/bnb-qr.png";
+
+// Map crypto IDs to their static QR codes
+const STATIC_QR_CODES: Record<string, string> = {
+  bitcoin: bitcoinQR,
+  ethereum: ethereumQR,
+  solana: solanaQR,
+  binancecoin: bnbQR,
+};
+
 interface ReceiveModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -260,12 +274,20 @@ const ReceiveModal = ({ open, onOpenChange }: ReceiveModalProps) => {
               {walletAddress && (
                 <div className="flex flex-col items-center py-4">
                   <div className="bg-white rounded-2xl p-4 mb-4">
-                    <QRCodeSVG 
-                      value={walletAddress} 
-                      size={180}
-                      level="H"
-                      includeMargin={false}
-                    />
+                    {STATIC_QR_CODES[selectedCrypto.id] ? (
+                      <img 
+                        src={STATIC_QR_CODES[selectedCrypto.id]} 
+                        alt={`${selectedCrypto.name} QR Code`}
+                        className="w-[180px] h-[180px] object-contain"
+                      />
+                    ) : (
+                      <QRCodeSVG 
+                        value={walletAddress} 
+                        size={180}
+                        level="H"
+                        includeMargin={false}
+                      />
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">Scan to receive {selectedCrypto.name}</p>
                 </div>
