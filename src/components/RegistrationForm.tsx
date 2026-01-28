@@ -4,22 +4,45 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+const usernameSchema = z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be less than 20 characters").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores");
+const countrySchema = z.string().min(1, "Please select a country");
+
+const COUNTRIES = [
+  "United States", "United Kingdom", "Canada", "Australia", "Germany", "France", 
+  "Japan", "South Korea", "Brazil", "India", "Mexico", "Spain", "Italy", 
+  "Netherlands", "Switzerland", "Singapore", "Hong Kong", "Nigeria", "South Africa",
+  "United Arab Emirates", "Saudi Arabia", "Indonesia", "Philippines", "Vietnam",
+  "Thailand", "Malaysia", "Poland", "Sweden", "Norway", "Denmark", "Finland",
+  "Austria", "Belgium", "Ireland", "Portugal", "New Zealand", "Argentina", "Chile",
+  "Colombia", "Peru", "Egypt", "Kenya", "Ghana", "Pakistan", "Bangladesh", "Other"
+];
+
+interface FormErrors {
+  email?: string;
+  password?: string;
+  username?: string;
+  country?: string;
+}
 
 const RegistrationForm = () => {
   const [activeTab, setActiveTab] = useState<"email" | "mobile">("email");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [formData, setFormData] = useState({
     email: "",
     phone: "",
     password: "",
+    username: "",
+    country: "",
     referralCode: "CRYPTOX"
   });
 
@@ -27,7 +50,7 @@ const RegistrationForm = () => {
   const navigate = useNavigate();
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: FormErrors = {};
     
     if (activeTab === "email") {
       const emailResult = emailSchema.safeParse(formData.email);
@@ -39,6 +62,16 @@ const RegistrationForm = () => {
     const passwordResult = passwordSchema.safeParse(formData.password);
     if (!passwordResult.success) {
       newErrors.password = passwordResult.error.errors[0].message;
+    }
+
+    const usernameResult = usernameSchema.safeParse(formData.username);
+    if (!usernameResult.success) {
+      newErrors.username = usernameResult.error.errors[0].message;
+    }
+
+    const countryResult = countrySchema.safeParse(formData.country);
+    if (!countryResult.success) {
+      newErrors.country = countryResult.error.errors[0].message;
     }
     
     setErrors(newErrors);
@@ -61,7 +94,24 @@ const RegistrationForm = () => {
     setIsSubmitting(true);
     
     try {
-      const { error } = await signUp(formData.email, formData.password);
+      // Check if username is already taken
+      const { data: existingUser } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("username", formData.username)
+        .maybeSingle();
+
+      if (existingUser) {
+        toast({
+          title: "Username taken",
+          description: "This username is already in use. Please choose another.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { error, data } = await signUp(formData.email, formData.password);
       
       if (error) {
         if (error.message.includes("User already registered")) {
@@ -77,9 +127,23 @@ const RegistrationForm = () => {
             variant: "destructive",
           });
         }
-      } else {
+      } else if (data?.user) {
+        // Update profile with additional fields
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            username: formData.username,
+            country: formData.country,
+            display_name: formData.username,
+          })
+          .eq("user_id", data.user.id);
+
+        if (profileError) {
+          console.error("Error updating profile:", profileError);
+        }
+
         toast({
-          title: "Welcome to CryptoX!",
+          title: "Welcome to Prime Wallet!",
           description: "Your account has been created successfully.",
         });
         navigate("/");
@@ -219,6 +283,46 @@ const RegistrationForm = () => {
             </button>
             {errors.password && (
               <p className="text-destructive text-sm mt-1">{errors.password}</p>
+            )}
+          </div>
+
+          {/* Username field */}
+          <div>
+            <Input
+              type="text"
+              placeholder="Username"
+              value={formData.username}
+              onChange={(e) => {
+                setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') });
+                if (errors.username) setErrors({ ...errors, username: undefined });
+              }}
+              className="bg-secondary border-border text-foreground placeholder:text-muted-foreground h-12"
+            />
+            {errors.username && (
+              <p className="text-destructive text-sm mt-1">{errors.username}</p>
+            )}
+          </div>
+
+          {/* Country field */}
+          <div>
+            <Select 
+              value={formData.country} 
+              onValueChange={(value) => {
+                setFormData({ ...formData, country: value });
+                if (errors.country) setErrors({ ...errors, country: undefined });
+              }}
+            >
+              <SelectTrigger className="bg-secondary border-border text-foreground h-12">
+                <SelectValue placeholder="Select your country" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {COUNTRIES.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.country && (
+              <p className="text-destructive text-sm mt-1">{errors.country}</p>
             )}
           </div>
 
