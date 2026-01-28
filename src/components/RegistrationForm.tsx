@@ -143,7 +143,7 @@ const RegistrationForm = () => {
         }
 
         toast({
-          title: "Welcome to Prime Wallet!",
+          title: "Welcome to jd-fahel!",
           description: "Your account has been created successfully.",
         });
         navigate("/");
