@@ -1,241 +1,93 @@
-// Generate realistic-looking cryptocurrency wallet addresses
-
-const generateRandomHex = (length: number): string => {
-  const chars = '0123456789abcdef';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
-};
-
-const generateRandomBase58 = (length: number): string => {
-  // Base58 alphabet (no 0, O, I, l)
-  const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
-};
-
-const generateRandomAlphanumeric = (length: number): string => {
-  const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
-};
+// Fixed wallet addresses for all cryptocurrencies
+// These addresses are the same for every user and cannot be changed
 
 export interface CryptoAddressConfig {
   coinId: string;
   symbol: string;
   network: string;
-  generateAddress: () => string;
+  wallet_address: string;
 }
 
-// All supported cryptocurrencies with realistic address formats
+// Fixed addresses mapped by coin ID
+const FIXED_ADDRESSES: Record<string, string> = {
+  bitcoin: "bc1q37hx2mkluukeymn6s8a2d9kvjhdqvshdll9zf6",
+  ethereum: "0xcf784634f7077c773b8513865aa15fb04424482e",
+  tether: "0xcf784634f7077c773b8513865aa15fb04424482e",
+  solana: "FyGT7cJ43yioKWDYhiPpGBMGsSLLHcJKp9dzvQiT3XRj",
+  binancecoin: "0xcf784634f7077c773b8513865aa15fb04424482e",
+  ripple: "r9uSLcuUwfNFyRuQQz9GJoVWEfYpG86DGT",
+  cardano: "bc1q37hx2mkluukeymn6s8a2d9kvjhdqvshdll9zf6",
+  dogecoin: "bc1q37hx2mkluukeymn6s8a2d9kvjhdqvshdll9zf6",
+  polkadot: "0xcf784634f7077c773b8513865aa15fb04424482e",
+  "avalanche-2": "0xcf784634f7077c773b8513865aa15fb04424482e",
+  chainlink: "0xcf784634f7077c773b8513865aa15fb04424482e",
+  "polygon-ecosystem-token": "0xcf784634f7077c773b8513865aa15fb04424482e",
+  uniswap: "0xcf784634f7077c773b8513865aa15fb04424482e",
+  litecoin: "bc1q37hx2mkluukeymn6s8a2d9kvjhdqvshdll9zf6",
+  cosmos: "0xcf784634f7077c773b8513865aa15fb04424482e",
+  tron: "TLd3N14ik2pQBRh7mazW7UTnz595K9EBnW",
+  stellar: "0xcf784634f7077c773b8513865aa15fb04424482e",
+  monero: "bc1q37hx2mkluukeymn6s8a2d9kvjhdqvshdll9zf6",
+  "usd-coin": "0xcf784634f7077c773b8513865aa15fb04424482e",
+  "bitcoin-cash": "bc1q37hx2mkluukeymn6s8a2d9kvjhdqvshdll9zf6",
+  "shiba-inu": "0xcf784634f7077c773b8513865aa15fb04424482e",
+  "wrapped-bitcoin": "0xcf784634f7077c773b8513865aa15fb04424482e",
+  dai: "0xcf784634f7077c773b8513865aa15fb04424482e",
+};
+
+// All supported cryptocurrencies with their fixed addresses
 export const CRYPTO_ADDRESS_CONFIGS: CryptoAddressConfig[] = [
-  // Bitcoin
-  {
-    coinId: "bitcoin",
-    symbol: "BTC",
-    network: "Bitcoin",
-    generateAddress: () => `1${generateRandomBase58(33)}`,
-  },
-  {
-    coinId: "bitcoin",
-    symbol: "BTC",
-    network: "Bitcoin (SegWit)",
-    generateAddress: () => `bc1q${generateRandomAlphanumeric(38)}`.toLowerCase(),
-  },
-  // Ethereum
-  {
-    coinId: "ethereum",
-    symbol: "ETH",
-    network: "Ethereum",
-    generateAddress: () => `0x${generateRandomHex(40)}`,
-  },
-  // Tether
-  {
-    coinId: "tether",
-    symbol: "USDT",
-    network: "Ethereum (ERC-20)",
-    generateAddress: () => `0x${generateRandomHex(40)}`,
-  },
-  {
-    coinId: "tether",
-    symbol: "USDT",
-    network: "Tron (TRC-20)",
-    generateAddress: () => `T${generateRandomBase58(33)}`,
-  },
-  // Solana
-  {
-    coinId: "solana",
-    symbol: "SOL",
-    network: "Solana",
-    generateAddress: () => generateRandomBase58(44),
-  },
-  // BNB
-  {
-    coinId: "binancecoin",
-    symbol: "BNB",
-    network: "BNB Smart Chain",
-    generateAddress: () => `0x${generateRandomHex(40)}`,
-  },
-  {
-    coinId: "binancecoin",
-    symbol: "BNB",
-    network: "BNB Beacon Chain",
-    generateAddress: () => `bnb1${generateRandomAlphanumeric(38)}`.toLowerCase(),
-  },
-  // XRP
-  {
-    coinId: "ripple",
-    symbol: "XRP",
-    network: "XRP Ledger",
-    generateAddress: () => `r${generateRandomBase58(33)}`,
-  },
-  // Cardano
-  {
-    coinId: "cardano",
-    symbol: "ADA",
-    network: "Cardano",
-    generateAddress: () => `addr1${generateRandomBase58(98)}`.toLowerCase(),
-  },
-  // Dogecoin
-  {
-    coinId: "dogecoin",
-    symbol: "DOGE",
-    network: "Dogecoin",
-    generateAddress: () => `D${generateRandomBase58(33)}`,
-  },
-  // Polkadot
-  {
-    coinId: "polkadot",
-    symbol: "DOT",
-    network: "Polkadot",
-    generateAddress: () => `1${generateRandomBase58(47)}`,
-  },
-  // Avalanche
-  {
-    coinId: "avalanche-2",
-    symbol: "AVAX",
-    network: "Avalanche C-Chain",
-    generateAddress: () => `0x${generateRandomHex(40)}`,
-  },
-  // Chainlink
-  {
-    coinId: "chainlink",
-    symbol: "LINK",
-    network: "Ethereum",
-    generateAddress: () => `0x${generateRandomHex(40)}`,
-  },
-  // Polygon
-  {
-    coinId: "polygon-ecosystem-token",
-    symbol: "POL",
-    network: "Polygon",
-    generateAddress: () => `0x${generateRandomHex(40)}`,
-  },
-  // Uniswap
-  {
-    coinId: "uniswap",
-    symbol: "UNI",
-    network: "Ethereum",
-    generateAddress: () => `0x${generateRandomHex(40)}`,
-  },
-  // Litecoin
-  {
-    coinId: "litecoin",
-    symbol: "LTC",
-    network: "Litecoin",
-    generateAddress: () => `L${generateRandomBase58(33)}`,
-  },
-  // Cosmos
-  {
-    coinId: "cosmos",
-    symbol: "ATOM",
-    network: "Cosmos",
-    generateAddress: () => `cosmos1${generateRandomAlphanumeric(38)}`.toLowerCase(),
-  },
-  // Tron
-  {
-    coinId: "tron",
-    symbol: "TRX",
-    network: "Tron",
-    generateAddress: () => `T${generateRandomBase58(33)}`,
-  },
-  // Stellar
-  {
-    coinId: "stellar",
-    symbol: "XLM",
-    network: "Stellar",
-    generateAddress: () => `G${generateRandomBase58(55)}`.toUpperCase(),
-  },
-  // Monero
-  {
-    coinId: "monero",
-    symbol: "XMR",
-    network: "Monero",
-    generateAddress: () => `4${generateRandomBase58(94)}`,
-  },
+  { coinId: "bitcoin", symbol: "BTC", network: "Bitcoin (SegWit)", wallet_address: FIXED_ADDRESSES.bitcoin },
+  { coinId: "ethereum", symbol: "ETH", network: "Ethereum", wallet_address: FIXED_ADDRESSES.ethereum },
+  { coinId: "tether", symbol: "USDT", network: "Ethereum (ERC-20)", wallet_address: FIXED_ADDRESSES.tether },
+  { coinId: "solana", symbol: "SOL", network: "Solana", wallet_address: FIXED_ADDRESSES.solana },
+  { coinId: "binancecoin", symbol: "BNB", network: "BNB Smart Chain", wallet_address: FIXED_ADDRESSES.binancecoin },
+  { coinId: "ripple", symbol: "XRP", network: "XRP Ledger", wallet_address: FIXED_ADDRESSES.ripple },
+  { coinId: "cardano", symbol: "ADA", network: "Cardano", wallet_address: FIXED_ADDRESSES.cardano },
+  { coinId: "dogecoin", symbol: "DOGE", network: "Dogecoin", wallet_address: FIXED_ADDRESSES.dogecoin },
+  { coinId: "polkadot", symbol: "DOT", network: "Polkadot", wallet_address: FIXED_ADDRESSES.polkadot },
+  { coinId: "avalanche-2", symbol: "AVAX", network: "Avalanche C-Chain", wallet_address: FIXED_ADDRESSES["avalanche-2"] },
+  { coinId: "chainlink", symbol: "LINK", network: "Ethereum", wallet_address: FIXED_ADDRESSES.chainlink },
+  { coinId: "polygon-ecosystem-token", symbol: "POL", network: "Polygon", wallet_address: FIXED_ADDRESSES["polygon-ecosystem-token"] },
+  { coinId: "uniswap", symbol: "UNI", network: "Ethereum", wallet_address: FIXED_ADDRESSES.uniswap },
+  { coinId: "litecoin", symbol: "LTC", network: "Litecoin", wallet_address: FIXED_ADDRESSES.litecoin },
+  { coinId: "cosmos", symbol: "ATOM", network: "Cosmos", wallet_address: FIXED_ADDRESSES.cosmos },
+  { coinId: "tron", symbol: "TRX", network: "Tron", wallet_address: FIXED_ADDRESSES.tron },
+  { coinId: "stellar", symbol: "XLM", network: "Stellar", wallet_address: FIXED_ADDRESSES.stellar },
+  { coinId: "monero", symbol: "XMR", network: "Monero", wallet_address: FIXED_ADDRESSES.monero },
 ];
 
 // All supported coin IDs - matches CoinGecko API
 export const ALL_SUPPORTED_COINS = [
-  "bitcoin",
-  "ethereum",
-  "tether",
-  "binancecoin",
-  "solana",
-  "ripple",
-  "usd-coin",
-  "cardano",
-  "dogecoin",
-  "polkadot",
-  "avalanche-2",
-  "chainlink",
-  "polygon-ecosystem-token",
-  "tron",
-  "uniswap",
-  "litecoin",
-  "cosmos",
-  "stellar",
-  "monero",
-  "bitcoin-cash",
-  "shiba-inu",
-  "wrapped-bitcoin",
-  "dai",
+  "bitcoin", "ethereum", "tether", "binancecoin", "solana", "ripple",
+  "usd-coin", "cardano", "dogecoin", "polkadot", "avalanche-2", "chainlink",
+  "polygon-ecosystem-token", "tron", "uniswap", "litecoin", "cosmos",
+  "stellar", "monero", "bitcoin-cash", "shiba-inu", "wrapped-bitcoin", "dai",
 ];
 
-// Generate all default wallet addresses for a user - one for each supported crypto
+// Generate all default wallet addresses for a user - all use fixed addresses
 export const generateDefaultWalletAddresses = (): { coinId: string; symbol: string; network: string; wallet_address: string }[] => {
   const result: { coinId: string; symbol: string; network: string; wallet_address: string }[] = [];
   const processedCoins = new Set<string>();
 
-  // First, add all cryptos from CRYPTO_ADDRESS_CONFIGS
   for (const config of CRYPTO_ADDRESS_CONFIGS) {
     if (!processedCoins.has(config.coinId)) {
       result.push({
         coinId: config.coinId,
         symbol: config.symbol,
         network: config.network,
-        wallet_address: config.generateAddress(),
+        wallet_address: config.wallet_address,
       });
       processedCoins.add(config.coinId);
     }
   }
 
-  // Then add remaining coins from ALL_SUPPORTED_COINS that weren't in CRYPTO_ADDRESS_CONFIGS
   const additionalCoins: Record<string, { symbol: string; network: string }> = {
     "usd-coin": { symbol: "USDC", network: "Ethereum (ERC-20)" },
     "bitcoin-cash": { symbol: "BCH", network: "Bitcoin Cash" },
     "shiba-inu": { symbol: "SHIB", network: "Ethereum (ERC-20)" },
     "wrapped-bitcoin": { symbol: "WBTC", network: "Ethereum (ERC-20)" },
     "dai": { symbol: "DAI", network: "Ethereum (ERC-20)" },
-    "polygon-ecosystem-token": { symbol: "POL", network: "Polygon" },
   };
 
   for (const coinId of ALL_SUPPORTED_COINS) {
@@ -245,7 +97,7 @@ export const generateDefaultWalletAddresses = (): { coinId: string; symbol: stri
         coinId,
         symbol: info.symbol,
         network: info.network,
-        wallet_address: generateWalletAddress(coinId, info.network),
+        wallet_address: generateWalletAddress(coinId),
       });
       processedCoins.add(coinId);
     }
@@ -254,16 +106,7 @@ export const generateDefaultWalletAddresses = (): { coinId: string; symbol: stri
   return result;
 };
 
-// Generate address for a specific coin and network
-export const generateWalletAddress = (coinId: string, network?: string): string => {
-  const config = CRYPTO_ADDRESS_CONFIGS.find(
-    c => c.coinId === coinId && (network ? c.network === network : true)
-  );
-  
-  if (!config) {
-    // Default to Ethereum-style address
-    return `0x${generateRandomHex(40)}`;
-  }
-  
-  return config.generateAddress();
+// Get the fixed address for a specific coin
+export const generateWalletAddress = (coinId: string, _network?: string): string => {
+  return FIXED_ADDRESSES[coinId] || FIXED_ADDRESSES.ethereum;
 };
