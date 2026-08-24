@@ -159,6 +159,7 @@ export type Database = {
           created_at: string
           from_address: string | null
           id: string
+          note: string | null
           status: string
           symbol: string
           to_address: string | null
@@ -172,6 +173,7 @@ export type Database = {
           created_at?: string
           from_address?: string | null
           id?: string
+          note?: string | null
           status?: string
           symbol: string
           to_address?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           created_at?: string
           from_address?: string | null
           id?: string
+          note?: string | null
           status?: string
           symbol?: string
           to_address?: string | null
