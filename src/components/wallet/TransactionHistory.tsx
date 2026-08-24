@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownLeft, RefreshCw } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, RefreshCw, Percent } from "lucide-react";
 import { useWallet, Transaction } from "@/hooks/useWallet";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,8 @@ const TransactionHistory = () => {
         return <ArrowDownLeft className="w-4 h-4" />;
       case "swap":
         return <RefreshCw className="w-4 h-4" />;
+      case "fee":
+        return <Percent className="w-4 h-4" />;
       default:
         return <ArrowUpRight className="w-4 h-4" />;
     }
@@ -39,6 +41,8 @@ const TransactionHistory = () => {
         return "bg-success/20 text-success";
       case "swap":
         return "bg-secondary text-foreground";
+      case "fee":
+        return "bg-destructive/20 text-destructive";
       default:
         return "bg-secondary text-muted-foreground";
     }
@@ -147,7 +151,7 @@ const TransactionHistory = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground capitalize">
-                      {tx.type === "swap" ? "Swap" : tx.type}
+                      {tx.type === "swap" ? "Swap" : tx.type === "fee" ? "Fee" : tx.type}
                     </span>
                     <span className={`text-xs capitalize ${
                       tx.status === "completed" ? "text-success" : 
