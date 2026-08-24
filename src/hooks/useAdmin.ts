@@ -311,6 +311,74 @@ export const useAdmin = () => {
     },
   });
 
+  // Deduct a fee from a user's wallet with narration
+  const deductFeeMutation = useMutation({
+    mutationFn: async ({
+      userId,
+      walletId,
+      coinId,
+      symbol,
+      amount,
+      narration,
+      currentBalance,
+    }: {
+      userId: string;
+      walletId: string;
+      coinId: string;
+      symbol: string;
+      amount: number;
+      narration: string;
+      currentBalance: number;
+    }) => {
+      if (amount <= 0) throw new Error("Fee amount must be greater than zero");
+      if (amount > currentBalance) throw new Error("Fee exceeds wallet balance");
+
+      // Deduct from wallet balance
+      const newBalance = currentBalance - amount;
+      const { error: walletError } = await supabase
+        .from("wallets")
+        .update({ balance: newBalance })
+        .eq("id", walletId);
+      if (walletError) throw walletError;
+
+      // Record the fee in the user's transaction history with the narration
+      const { error: txError } = await supabase.from("transactions").insert({
+        user_id: userId,
+        type: "fee",
+        coin_id: coinId,
+        symbol,
+        amount,
+        status: "completed",
+        note: narration,
+      });
+      if (txError) throw txError;
+
+      // Log admin action
+      await supabase.from("admin_actions").insert({
+        admin_id: user?.id,
+        action_type: "deduct_fee",
+        target_user_id: userId,
+        details: { coin_id: coinId, symbol, amount, narration },
+      });
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      toast({
+        title: "Fee Deducted",
+        description: "The fee has been deducted from the user's wallet.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Deduct Fee",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Update or create wallet address
   const updateWalletAddressMutation = useMutation({
     mutationFn: async ({
@@ -385,10 +453,12 @@ export const useAdmin = () => {
     toggleFreeze: toggleFreezeMutation.mutate,
     updateFee: updateFeeMutation.mutate,
     updateWalletAddress: updateWalletAddressMutation.mutate,
+    deductFee: deductFeeMutation.mutate,
     isFunding: fundAccountMutation.isPending,
     isToggling: toggleFreezeMutation.isPending,
     isUpdatingFee: updateFeeMutation.isPending,
     isUpdatingAddress: updateWalletAddressMutation.isPending,
+    isDeductingFee: deductFeeMutation.isPending,
   };
 };
 

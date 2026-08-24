@@ -8,7 +8,8 @@ import {
   ChevronUp,
   User,
   MapPin,
-  Wallet
+  Wallet,
+  Percent
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAdmin, UserWithProfile } from "@/hooks/useAdmin";
 import WalletAddressModal from "./WalletAddressModal";
+import DeductFeeModal from "./DeductFeeModal";
 
 interface AdminUserCardProps {
   user: UserWithProfile;
@@ -34,6 +36,7 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
   const [freezeDialogOpen, setFreezeDialogOpen] = useState(false);
   const [freezeReason, setFreezeReason] = useState("");
   const [walletAddressModalOpen, setWalletAddressModalOpen] = useState(false);
+  const [feeModalOpen, setFeeModalOpen] = useState(false);
 
   const isFrozen = user.profile?.is_frozen || false;
   const displayName = user.profile?.display_name || user.profile?.username || "Unknown User";
@@ -118,6 +121,15 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
               title="Fund Account"
             >
               <DollarSign className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setFeeModalOpen(true)}
+              className="h-8"
+              title="Deduct Fee"
+            >
+              <Percent className="w-4 h-4" />
             </Button>
             <Button
               size="sm"
@@ -281,6 +293,13 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
         user={user} 
         open={walletAddressModalOpen} 
         onClose={() => setWalletAddressModalOpen(false)} 
+      />
+
+      {/* Deduct Fee Modal */}
+      <DeductFeeModal
+        user={user}
+        open={feeModalOpen}
+        onOpenChange={setFeeModalOpen}
       />
     </>
   );
