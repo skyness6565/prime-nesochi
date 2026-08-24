@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle, Copy, Check, ArrowUpRight, ArrowDownLeft, RefreshCw, Clock, XCircle } from "lucide-react";
+import { X, CheckCircle, Copy, Check, ArrowUpRight, ArrowDownLeft, RefreshCw, Clock, XCircle, Percent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -40,6 +40,8 @@ const TransactionDetailModal = ({ open, onClose, transaction }: TransactionDetai
         return <ArrowDownLeft className="w-6 h-6 text-primary-foreground" />;
       case "swap":
         return <RefreshCw className="w-6 h-6 text-primary-foreground" />;
+      case "fee":
+        return <Percent className="w-6 h-6 text-primary-foreground" />;
     }
   };
 
@@ -51,6 +53,8 @@ const TransactionDetailModal = ({ open, onClose, transaction }: TransactionDetai
         return "bg-success";
       case "swap":
         return "bg-secondary";
+      case "fee":
+        return "bg-destructive";
     }
   };
 
@@ -73,6 +77,8 @@ const TransactionDetailModal = ({ open, onClose, transaction }: TransactionDetai
         return "Received";
       case "swap":
         return "Swapped";
+      case "fee":
+        return "Fee Charged";
     }
   };
 
@@ -182,6 +188,16 @@ const TransactionDetailModal = ({ open, onClose, transaction }: TransactionDetai
                 <span className="text-muted-foreground">Asset</span>
                 <span className="text-foreground">{coinData?.name || transaction.symbol} ({transaction.symbol})</span>
               </div>
+
+              {/* Fee Narration / Note */}
+              {transaction.note && (
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-sm">Narration</span>
+                  <div className="bg-secondary/50 rounded-lg p-3">
+                    <p className="text-sm text-foreground">{transaction.note}</p>
+                  </div>
+                </div>
+              )}
 
               {/* To Address */}
               {transaction.to_address && (
