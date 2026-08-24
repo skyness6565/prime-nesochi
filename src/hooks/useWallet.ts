@@ -17,7 +17,7 @@ export interface Wallet {
 export interface Transaction {
   id: string;
   user_id: string;
-  type: "send" | "receive" | "swap";
+  type: "send" | "receive" | "swap" | "fee";
   coin_id: string;
   symbol: string;
   amount: number;
@@ -25,6 +25,7 @@ export interface Transaction {
   from_address?: string;
   status: "pending" | "completed" | "failed";
   tx_hash?: string;
+  note?: string;
   created_at: string;
 }
 
@@ -68,7 +69,7 @@ export const useWallet = () => {
       return (data || []).map(t => ({
         ...t,
         amount: parseFloat(String(t.amount)),
-        type: t.type as "send" | "receive" | "swap",
+        type: t.type as "send" | "receive" | "swap" | "fee",
         status: t.status as "pending" | "completed" | "failed"
       }));
     },
