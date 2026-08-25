@@ -11,6 +11,16 @@ export interface UserWalletAddress {
   wallet_address: string;
 }
 
+export interface UserTransferFee {
+  id: string;
+  user_id: string;
+  coin_id: string;
+  symbol: string;
+  fee_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface UserWithProfile {
   id: string;
   email: string;
@@ -143,6 +153,24 @@ export const useAdmin = () => {
       return {
         transaction_fee: data.value as { percentage: number; min_fee_usd: number },
       };
+    },
+    enabled: isAdminQuery.data === true,
+  });
+
+  // Get all per-user transfer fees
+  const transferFeesQuery = useQuery({
+    queryKey: ["adminTransferFees"],
+    queryFn: async (): Promise<UserTransferFee[]> => {
+      const { data, error } = await supabase
+        .from("user_transfer_fees")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data || []).map((f) => ({
+        ...f,
+        fee_amount: parseFloat(String(f.fee_amount)),
+      }));
     },
     enabled: isAdminQuery.data === true,
   });
