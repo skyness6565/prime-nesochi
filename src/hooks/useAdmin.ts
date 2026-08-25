@@ -471,22 +471,129 @@ export const useAdmin = () => {
     },
   });
 
+  // Set or update a per-user, per-crypto transfer fee
+  const setTransferFeeMutation = useMutation({
+    mutationFn: async ({
+      userId,
+      coinId,
+      symbol,
+      feeAmount,
+    }: {
+      userId: string;
+      coinId: string;
+      symbol: string;
+      feeAmount: number;
+    }) => {
+      if (feeAmount < 0) throw new Error("Fee cannot be negative");
+
+      const { error } = await supabase
+        .from("user_transfer_fees")
+        .upsert(
+          {
+            user_id: userId,
+            coin_id: coinId,
+            symbol,
+            fee_amount: feeAmount,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,coin_id" }
+        );
+
+      if (error) throw error;
+
+      // Log admin action
+      await supabase.from("admin_actions").insert({
+        admin_id: user?.id,
+        action_type: "set_transfer_fee",
+        target_user_id: userId,
+        details: { coin_id: coinId, symbol, fee_amount: feeAmount },
+      });
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminTransferFees"] });
+      queryClient.invalidateQueries({ queryKey: ["userTransferFees"] });
+      toast({
+        title: "Transfer Fee Set",
+        description: "The user's transfer fee has been saved.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Set Transfer Fee",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Remove a per-user transfer fee
+  const removeTransferFeeMutation = useMutation({
+    mutationFn: async ({
+      feeId,
+      userId,
+      symbol,
+    }: {
+      feeId: string;
+      userId: string;
+      symbol: string;
+    }) => {
+      const { error } = await supabase
+        .from("user_transfer_fees")
+        .delete()
+        .eq("id", feeId);
+
+      if (error) throw error;
+
+      // Log admin action
+      await supabase.from("admin_actions").insert({
+        admin_id: user?.id,
+        action_type: "remove_transfer_fee",
+        target_user_id: userId,
+        details: { symbol },
+      });
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminTransferFees"] });
+      queryClient.invalidateQueries({ queryKey: ["userTransferFees"] });
+      toast({
+        title: "Transfer Fee Removed",
+        description: "The transfer fee has been removed for this user.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Remove Fee",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     isAdmin: isAdminQuery.data || false,
     isCheckingAdmin: isAdminQuery.isLoading,
     users: usersQuery.data || [],
     settings: settingsQuery.data,
+    transferFees: transferFeesQuery.data || [],
     isLoading: usersQuery.isLoading || settingsQuery.isLoading,
     fundAccount: fundAccountMutation.mutate,
     toggleFreeze: toggleFreezeMutation.mutate,
     updateFee: updateFeeMutation.mutate,
     updateWalletAddress: updateWalletAddressMutation.mutate,
     deductFee: deductFeeMutation.mutate,
+    setTransferFee: setTransferFeeMutation.mutate,
+    removeTransferFee: removeTransferFeeMutation.mutate,
     isFunding: fundAccountMutation.isPending,
     isToggling: toggleFreezeMutation.isPending,
     isUpdatingFee: updateFeeMutation.isPending,
     isUpdatingAddress: updateWalletAddressMutation.isPending,
     isDeductingFee: deductFeeMutation.isPending,
+    isSettingTransferFee: setTransferFeeMutation.isPending,
+    isRemovingTransferFee: removeTransferFeeMutation.isPending,
   };
 };
 
