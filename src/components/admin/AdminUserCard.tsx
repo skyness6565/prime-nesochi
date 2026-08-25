@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  DollarSign, 
-  Snowflake, 
-  Sun, 
-  ChevronDown, 
+import {
+  DollarSign,
+  Snowflake,
+  Sun,
+  ChevronDown,
   ChevronUp,
   User,
   MapPin,
   Wallet,
-  Percent
+  Percent,
+  Coins
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import {
 import { useAdmin, UserWithProfile } from "@/hooks/useAdmin";
 import WalletAddressModal from "./WalletAddressModal";
 import DeductFeeModal from "./DeductFeeModal";
+import TransferFeeModal from "./TransferFeeModal";
 
 interface AdminUserCardProps {
   user: UserWithProfile;
@@ -37,6 +39,7 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
   const [freezeReason, setFreezeReason] = useState("");
   const [walletAddressModalOpen, setWalletAddressModalOpen] = useState(false);
   const [feeModalOpen, setFeeModalOpen] = useState(false);
+  const [transferFeeModalOpen, setTransferFeeModalOpen] = useState(false);
 
   const isFrozen = user.profile?.is_frozen || false;
   const displayName = user.profile?.display_name || user.profile?.username || "Unknown User";
@@ -130,6 +133,15 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
               title="Deduct Fee"
             >
               <Percent className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setTransferFeeModalOpen(true)}
+              className="h-8"
+              title="Set Transfer Fee"
+            >
+              <Coins className="w-4 h-4" />
             </Button>
             <Button
               size="sm"
@@ -300,6 +312,13 @@ const AdminUserCard = ({ user, onFund }: AdminUserCardProps) => {
         user={user}
         open={feeModalOpen}
         onOpenChange={setFeeModalOpen}
+      />
+
+      {/* Set Transfer Fee Modal */}
+      <TransferFeeModal
+        user={user}
+        open={transferFeeModalOpen}
+        onOpenChange={setTransferFeeModalOpen}
       />
     </>
   );

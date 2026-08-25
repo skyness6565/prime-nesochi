@@ -218,6 +218,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_transfer_fees: {
+        Row: {
+          coin_id: string
+          created_at: string
+          fee_amount: number
+          id: string
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coin_id: string
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coin_id?: string
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_wallets: {
         Row: {
           coin_id: string

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import NetworkFeeWarning from "@/components/wallet/NetworkFeeWarning";
 import TransferReceipt from "@/components/wallet/TransferReceipt";
+import { useUserTransferFees } from "@/hooks/useTransferFees";
 
 interface SendModalProps {
   open: boolean;
@@ -42,6 +43,7 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
   const { data: prices, isLoading: pricesLoading } = useCryptoPrices();
   const { wallets, sendCrypto, isSending } = useWallet();
   const { findWalletByAddress } = useUserWallets();
+  const { data: transferFees } = useUserTransferFees();
   
   const [step, setStep] = useState<"select" | "amount" | "confirm" | "receipt">("select");
   const [selectedCrypto, setSelectedCrypto] = useState<{
@@ -101,9 +103,15 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
     };
   }, [selectedNetwork, wallets, prices]);
 
-  const hasEnoughForFee = networkFeeCoin 
-    ? networkFeeCoin.balance * networkFeeCoin.price >= REQUIRED_FEE_USD 
+  const hasEnoughForFee = networkFeeCoin
+    ? networkFeeCoin.balance * networkFeeCoin.price >= REQUIRED_FEE_USD
     : false;
+
+  // Admin-set transfer fee for the selected coin (in that coin's units)
+  const activeTransferFee = selectedCrypto
+    ? transferFees?.find((f) => f.coin_id === selectedCrypto.id)
+    : undefined;
+  const transferFeeAmount = activeTransferFee?.fee_amount || 0;
 
   const handleClose = () => {
     onOpenChange(false);
@@ -207,12 +215,13 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
         });
     }
     
-    // This will SUBTRACT from sender's balance
+    // This will SUBTRACT amount + transfer fee from sender's balance
     sendCrypto({
       coinId: selectedCrypto.id,
       symbol: selectedCrypto.symbol,
       amount: sendAmount,
       toAddress: address,
+      feeAmount: transferFeeAmount,
     });
     
     // Set receipt data
@@ -233,8 +242,8 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
   if (!open) return null;
 
   const usdValue = selectedCrypto ? parseFloat(amount || "0") * selectedCrypto.currentPrice : 0;
-  const canProceed = address && amount && parseFloat(amount) > 0 && 
-    parseFloat(amount) <= (selectedCrypto?.balance || 0) && 
+  const canProceed = address && amount && parseFloat(amount) > 0 &&
+    parseFloat(amount) + transferFeeAmount <= (selectedCrypto?.balance || 0) &&
     selectedNetwork && hasEnoughForFee;
 
   return (
@@ -432,6 +441,29 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
                 </div>
               </div>
 
+              {/* Admin-set transfer fee notice */}
+              {transferFeeAmount > 0 && (
+                <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Transfer fee:</span>
+                    <span className="text-foreground font-medium">
+                      {transferFeeAmount.toLocaleString(undefined, { maximumFractionDigits: 8 })} {selectedCrypto.symbol}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total deducted:</span>
+                    <span className="text-foreground font-medium">
+                      {(parseFloat(amount || "0") + transferFeeAmount).toLocaleString(undefined, { maximumFractionDigits: 8 })} {selectedCrypto.symbol}
+                    </span>
+                  </div>
+                  {parseFloat(amount || "0") + transferFeeAmount > selectedCrypto.balance && (
+                    <p className="text-xs text-destructive pt-1">
+                      Insufficient balance to cover the amount plus transfer fee.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-2">
                 {[25, 50, 75, 100].map((pct) => (
                   <button
@@ -489,6 +521,12 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
                   <span className="text-muted-foreground">Network Fee</span>
                   <span className="text-foreground">~${REQUIRED_FEE_USD.toFixed(2)} ({networkFeeCoin?.symbol})</span>
                 </div>
+                {transferFeeAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Transfer Fee</span>
+                    <span className="text-foreground">{transferFeeAmount.toLocaleString(undefined, { maximumFractionDigits: 8 })} {selectedCrypto.symbol}</span>
+                  </div>
+                )}
                 {recipientInfo?.exists && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Transfer Type</span>
@@ -497,7 +535,9 @@ const SendModal = ({ open, onOpenChange }: SendModalProps) => {
                 )}
                 <div className="border-t border-border pt-3 flex justify-between">
                   <span className="text-muted-foreground">Total</span>
-                  <span className="font-bold text-foreground">{amount} {selectedCrypto.symbol}</span>
+                  <span className="font-bold text-foreground">
+                    {(parseFloat(amount || "0") + transferFeeAmount).toLocaleString(undefined, { maximumFractionDigits: 8 })} {selectedCrypto.symbol}
+                  </span>
                 </div>
               </div>
 
