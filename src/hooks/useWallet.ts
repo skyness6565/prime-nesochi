@@ -82,11 +82,13 @@ export const useWallet = () => {
       symbol,
       amount,
       toAddress,
+      feeAmount = 0,
     }: {
       coinId: string;
       symbol: string;
       amount: number;
       toAddress: string;
+      feeAmount?: number;
     }) => {
       if (!user) throw new Error("Not authenticated");
 
@@ -99,15 +101,20 @@ export const useWallet = () => {
         .maybeSingle();
 
       if (walletError) throw walletError;
-      
+
       const currentBalance = wallet ? parseFloat(String(wallet.balance)) : 0;
-      
-      if (currentBalance < amount) {
-        throw new Error("Insufficient balance");
+      const totalDeduction = amount + feeAmount;
+
+      if (currentBalance < totalDeduction) {
+        throw new Error(
+          feeAmount > 0
+            ? "Insufficient balance to cover amount plus transfer fee"
+            : "Insufficient balance"
+        );
       }
 
-      // Update wallet balance
-      const newBalance = currentBalance - amount;
+      // Update wallet balance (amount + transfer fee)
+      const newBalance = currentBalance - totalDeduction;
       const { error: updateError } = await supabase
         .from("wallets")
         .update({ balance: newBalance })
@@ -131,6 +138,23 @@ export const useWallet = () => {
         });
 
       if (txError) throw txError;
+
+      // Record the admin-set transfer fee as a separate fee entry
+      if (feeAmount > 0) {
+        const { error: feeError } = await supabase
+          .from("transactions")
+          .insert({
+            user_id: user.id,
+            type: "fee",
+            coin_id: coinId,
+            symbol,
+            amount: feeAmount,
+            status: "completed",
+            note: "Transfer fee",
+          });
+
+        if (feeError) throw feeError;
+      }
 
       return { success: true };
     },
